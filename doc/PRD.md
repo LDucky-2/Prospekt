@@ -1,61 +1,21 @@
 # Product Requirements Document (PRD) — Prospekt
 
 | Field | Value |
-|---|---|
+| --- | --- |
 | Product | Prospekt |
 | Version | MVP + Beta |
 | Releases | MVP — Mid-term, Beta — Final |
 | Status | Draft |
-| Related docs | [Software Requirements Specification (SRS)](SRS.md), [Technical Design Document (TDD)](TDD.md) |
+| Related docs | [Software Requirements Specification (SRS)](https://www.google.com/search?q=SRS.md), [Technical Design Document (TDD)](https://www.google.com/search?q=TDD.md) |
 
 This document covers **both releases**. Every goal, feature, and user story has a **Release** column to distinguish between what is built for the mid-term MVP and what is added for the final Beta.
 
 ## 0. Release Plan
 
 | Release | When | Focus |
-|---|---|---|
+| --- | --- | --- |
 | **MVP** | Mid-term | Core public data API, unit filtering, structured mark and seat tables, important dates, and fast search deployed on Vercel. End users access everything without any account or login. |
 | **Beta** | Final | Admin authentication and portal for uploading and managing prospectus data, admin profile and RBAC, client-side unit comparison and bookmarks, and security hardening. |
-
-```mermaid
-flowchart LR
-    subgraph MVP["MVP — Mid-term"]
-        M1[M1 Docs] --> M2[M2 Data layer] --> M3[M3 Public Core API & UI] --> M4[M4 Mid demo]
-    end
-    subgraph Beta["Beta — Final"]
-        B1[B1 Admin Auth] --> B2[B2 Admin Portal & RBAC] --> B3[B3 Bookmarks & Comparison] --> B4[B4 Security] --> B5[B5 Final demo]
-    end
-    M4 --> B1```markdown
-# Product Requirements Document (PRD) — Prospekt
-
-| Field | Value |
-|---|---|
-| Product | Prospekt |
-| Version | MVP + Beta |
-| Releases | MVP — Mid-term, Beta — Final |
-| Status | Draft |
-| Related docs | [Software Requirements Specification (SRS)](SRS.md), [Technical Design Document (TDD)](TDD.md) |
-
-This document covers **both releases**. Every goal, feature, and user story has a **Release** column to distinguish between what is built for the mid-term MVP and what is added for the final Beta.
-
-## 0. Release Plan
-
-| Release | When | Focus |
-|---|---|---|
-| **MVP** | Mid-term | Core public data API, unit filtering, structured mark and seat tables, important dates, and fast search deployed on Vercel. End users access everything without any account or login. |
-| **Beta** | Final | Admin authentication and portal for uploading and managing prospectus data, admin profile and RBAC, client-side unit comparison and bookmarks, and security hardening. |
-
-```mermaid
-flowchart LR
-    subgraph MVP["MVP — Mid-term"]
-        M1[M1 Docs] --> M2[M2 Data layer] --> M3[M3 Public Core API & UI] --> M4[M4 Mid demo]
-    end
-    subgraph Beta["Beta — Final"]
-        B1[B1 Admin Auth] --> B2[B2 Admin Portal & RBAC] --> B3[B3 Bookmarks & Comparison] --> B4[B4 Security] --> B5[B5 Final demo]
-    end
-    M4 --> B1
-
-```
 
 ## 1. Purpose
 
@@ -196,7 +156,3 @@ University admissions in Bangladesh rely on PDF prospectuses containing informat
 * **M3 — Client Enhancements:** Unit comparison and local bookmarking features added to the frontend.
 * **M4 — Security Hardening:** Login lockout, security headers, and permission checks finalized.
 * **M5 — Final demo:** Beta deployed live on Vercel, tagged `v0.2.0`.
-
-```
-
-```
