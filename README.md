@@ -14,3 +14,6 @@ Tech Stack & Architecture
 This repository is structured as a monorepo designed to compile and deploy seamlessly to Vercel as a single unified project using Vercel Serverless Functions.
     - Frontend: React, TypeScript, Vite
     - Backend: Python 3.11+, FastAPI
+
+
+#
