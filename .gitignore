@@ -2,6 +2,7 @@
 __pycache__/
 .venv/
 *.pyc
+backend/prospekt.db
 
 # Node
 node_modules/
