@@ -109,13 +109,15 @@ docs/
 
 ### 5.1 Core Tables (MVP)
 
-* **`university`**: `id` (PK), `name` (varchar), `session` (varchar), `website_url` (varchar), `created_at`, `updated_at`.
-* **`unit`**: `id` (PK), `university_id` (FK), `unit_name` (varchar, e.g. "A Unit"), `background` (varchar: Science/Arts/Commerce), `total_seats` (int).
-* **`eligibility_rule`**: `id` (PK), `unit_id` (FK), `min_ssc_gpa` (float), `min_hsc_gpa` (float), `combined_gpa` (float), `second_time_allowed` (bool), `second_time_penalty_marks` (float), `subject_requirements` (text).
-* **`mark_distribution`**: `id` (PK), `unit_id` (FK), `total_marks` (int), `mcq_marks` (int), `written_marks` (int), `negative_marking_penalty` (float), `pass_mark_total` (float), `subject_breakout` (json).
-* **`seat_info`**: `id` (PK), `unit_id` (FK), `general_seats` (int), `quota_breakdown` (json).
-* **`important_date`**: `id` (PK), `university_id` (FK), `application_start` (datetime), `application_end` (datetime), `admit_card_start` (datetime), `exam_date` (datetime).
-* **`fee_structure`**: `id` (PK), `unit_id` (FK), `application_fee` (float), `payment_methods` (text).
+* **`university`**: `id` (PK), `name` (varchar), `session` (varchar), `website_url` (varchar), `overview` (text), optional university-wide application/admit-card/exam dates, `created_at`, `updated_at`.
+* **`unit`**: `id` (PK), `university_id` (FK), `unit_name` (varchar, e.g. "A Unit"), `background` (varchar: Science/Arts/Commerce/All), `total_seats` (int). A university has many units; each unit owns its prospectus details below.
+* **`eligibility_rule`**: `id` (PK), unique `unit_id` (FK), `min_ssc_gpa` (float), `min_hsc_gpa` (float), `combined_gpa` (float), `second_time_allowed` (bool), `second_time_penalty_marks` (float), `subject_requirements` (text).
+* **`mark_distribution`**: `id` (PK), unique `unit_id` (FK), `total_marks` (int), `mcq_marks` (int), `written_marks` (int), `negative_marking_penalty` (float), `pass_mark_total` (float), and free-text `subject_breakout`.
+* **`seat_info`**: `id` (PK), unique `unit_id` (FK), `general_seats` (int), and free-text `quota_breakdown`.
+* **`important_date`**: `id` (PK), unique `unit_id` (FK), `application_start` (date), `application_end` (date), `admit_card_start` (date), `exam_date` (date).
+* **`fee_structure`**: `id` (PK), unique `unit_id` (FK), `application_fee` (float), `payment_methods` (text).
+
+The university CRUD endpoints accept and return each university with its nested units and their eligibility rules, marks, seats, dates, and fees. The frontend calls the backend API only; database credentials and database connections remain exclusively in the backend.
 
 ### 5.2 Admin Tables (Beta)
 
@@ -126,15 +128,15 @@ docs/
 
 Base path: `/api/v1`. All payloads and responses use JSON.
 
-### 6.1 Public Endpoints (MVP)
+### 6.1 University Prospectus CRUD (MVP)
 
 | Method | Path | Description | Access |
 | --- | --- | --- | --- |
-| `GET` | `/api/v1/universities` | List all universities and active sessions | Public |
-| `GET` | `/api/v1/universities/{id}` | Get university details and important dates | Public |
-| `GET` | `/api/v1/units` | List units (supports query params `university_id`, `background`) | Public |
-| `GET` | `/api/v1/units/{id}` | Get full unit details (eligibility, marks, seats, fees, portal link) | Public |
-| `GET` | `/api/v1/search` | Search universities, units, and requirements by keyword | Public |
+| `POST` | `/api/v1/universities` | Create a university prospectus record | Public |
+| `GET` | `/api/v1/universities` | List university prospectus records | Public |
+| `GET` | `/api/v1/universities/{id}` | Read one university prospectus record | Public |
+| `PUT` | `/api/v1/universities/{id}` | Replace/update a university prospectus record | Public |
+| `DELETE` | `/api/v1/universities/{id}` | Delete a university prospectus record | Public |
 | `GET` | `/api/health` | System health check | Public |
 
 ### 6.2 Admin Endpoints (Beta)
@@ -157,6 +159,8 @@ Base path: `/api/v1`. All payloads and responses use JSON.
 
 * **Environment Variables:**
 * `DATABASE_URL`: Connection string for Supabase PostgreSQL (transaction pooler port `6543`) or local SQLite.
+* Locally, put `DATABASE_URL` in `backend/.env`; the FastAPI backend reads it and connects to Supabase. The frontend only calls the backend API and must not contain database credentials. If unset, the backend uses `backend/prospekt.db` for SQLite development.
+* On Vercel, set `DATABASE_URL` in the project environment variables (or use the Supabase-provided `POSTGRES_URL`).
 * `JWT_SECRET`: Secure cryptographic secret for signing admin JWT tokens (minimum 32 bytes).
 * `ACCESS_TOKEN_MINUTES`: Access token expiration (default: `15`).
 * `REFRESH_TOKEN_DAYS`: Refresh token lifetime (default: `7`).
