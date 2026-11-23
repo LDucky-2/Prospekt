@@ -5,6 +5,10 @@ import {
   getUniversity,
   listUniversities,
   updateUniversity,
+  login,
+  logout,
+  restoreSession,
+  type AuthUser,
   type University,
   type UniversityInput,
   type Unit,
@@ -266,6 +270,11 @@ function DetailSection({ title, entries }: { title: string; entries: [string, Re
 
 export default function App() {
   const [universities, setUniversities] = useState<University[]>([])
+  const [authUser, setAuthUser] = useState<AuthUser | null>(null)
+  const [authLoading, setAuthLoading] = useState(true)
+  const [loginEmail, setLoginEmail] = useState("")
+  const [loginPassword, setLoginPassword] = useState("")
+  const [loginError, setLoginError] = useState("")
   const [selectedUniversity, setSelectedUniversity] = useState<University | null>(null)
   const [form, setForm] = useState<FormValues>(emptyForm)
   const [editing, setEditing] = useState(false)
@@ -274,8 +283,31 @@ export default function App() {
   const [error, setError] = useState("")
 
   useEffect(() => {
+    void restoreSession()
+      .then(setAuthUser)
+      .finally(() => setAuthLoading(false))
     void loadUniversities()
   }, [])
+
+  async function handleLogin(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setLoginError("")
+    try {
+      const user = await login({ email: loginEmail, password: loginPassword })
+      setAuthUser(user)
+      setLoginPassword("")
+    } catch (err) {
+      setLoginError(err instanceof Error ? err.message : "Could not log in.")
+    }
+  }
+
+  async function handleLogout() {
+    try {
+      await logout()
+    } finally {
+      setAuthUser(null)
+    }
+  }
 
   async function loadUniversities(preferredId?: number) {
     setLoading(true)
@@ -394,8 +426,39 @@ export default function App() {
           <p className="eyebrow">Admission information manager</p>
           <h1>Prospekt</h1>
         </div>
-        <span className="chip">Prospectus records</span>
+        <div className="topbar-right">
+          {authLoading ? (
+            <span className="chip">Restoring session...</span>
+          ) : authUser ? (
+            <>
+              <span className="chip">{authUser.name} ({authUser.role})</span>
+              <button type="button" onClick={() => void handleLogout()}>Log out</button>
+            </>
+          ) : (
+            <form className="auth-inline" onSubmit={(event) => void handleLogin(event)}>
+              <input
+                aria-label="Email"
+                type="email"
+                placeholder="Email"
+                value={loginEmail}
+                onChange={(event) => setLoginEmail(event.target.value)}
+                required
+              />
+              <input
+                aria-label="Password"
+                type="password"
+                placeholder="Password"
+                value={loginPassword}
+                onChange={(event) => setLoginPassword(event.target.value)}
+                required
+              />
+              <button type="submit">Log in</button>
+            </form>
+          )}
+        </div>
       </header>
+
+      {loginError && <p className="notice error" role="alert">{loginError}</p>}
 
       {error && <p className="notice error" role="alert">{error}</p>}
 
@@ -403,7 +466,9 @@ export default function App() {
         <aside className="panel sidebar">
           <div className="section-heading">
             <h2>Prospectuses</h2>
-            <button type="button" onClick={startNew}>New record</button>
+            {authUser?.role === "admin" && (
+              <button type="button" onClick={startNew}>New university</button>
+            )}
           </div>
           {loading ? (
             <p>Loading records...</p>
@@ -439,12 +504,14 @@ export default function App() {
                   <p className="eyebrow">Prospectus details</p>
                   <h2>{selectedUniversity.name}</h2>
                 </div>
-                <div className="button-row">
-                  <button type="button" onClick={startEditing}>Edit</button>
-                  <button className="danger-button" type="button" onClick={() => void handleDelete()}>
-                    Delete
-                  </button>
-                </div>
+                {authUser && (
+                  <div className="button-row">
+                    <button type="button" onClick={startEditing}>Edit</button>
+                    <button className="danger-button" type="button" onClick={() => void handleDelete()}>
+                      Delete
+                    </button>
+                  </div>
+                )}
               </div>
               <DetailSection title="University information" entries={[
                 ["Admission session", selectedUniversity.session],
@@ -512,7 +579,9 @@ export default function App() {
             </article>
           )}
 
-          {(!selectedUniversity || editing) && (
+          {authUser &&
+            ((!selectedUniversity && authUser.role === "admin") ||
+              (editing && selectedUniversity)) && (
             <section className="panel form-panel">
               <p className="eyebrow">{isEditingExisting ? "Update record" : "Create record"}</p>
               <h2>{isEditingExisting ? "Edit prospectus" : "New prospectus"}</h2>

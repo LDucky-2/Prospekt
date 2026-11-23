@@ -66,8 +66,83 @@ export type UniversityInput = Omit<University, "id" | "created_at" | "updated_at
   units: UnitInput[]
 }
 
+export type AuthUser = {
+  id: string
+  email: string
+  name: string
+  role: "editor" | "admin"
+  is_active: boolean
+  last_login_at: string | null
+  created_at: string
+}
+
+export type LoginInput = {
+  email: string
+  password: string
+}
+
+const TOKEN_KEY = "prospekt_access_token"
+const EXPIRY_KEY = "prospekt_access_expires"
+let accessToken = sessionStorage.getItem(TOKEN_KEY)
+let accessExpiresAt = Number(sessionStorage.getItem(EXPIRY_KEY) || "0")
+let refreshInProgress: Promise<boolean> | null = null
+
+function storeAccessToken(token: string, expiresIn: number) {
+  accessToken = token
+  accessExpiresAt = Date.now() + expiresIn * 1000
+  sessionStorage.setItem(TOKEN_KEY, token)
+  sessionStorage.setItem(EXPIRY_KEY, String(accessExpiresAt))
+}
+
+function clearAccessToken() {
+  accessToken = null
+  accessExpiresAt = 0
+  sessionStorage.removeItem(TOKEN_KEY)
+  sessionStorage.removeItem(EXPIRY_KEY)
+}
+
+async function refreshAccessToken(): Promise<boolean> {
+  if (refreshInProgress) return refreshInProgress
+  refreshInProgress = (async () => {
+    try {
+      const response = await fetch("/api/v1/auth/refresh", {
+        method: "POST",
+        credentials: "include",
+      })
+      if (!response.ok) return false
+      const token = await response.json() as { access_token: string; expires_in: number }
+      storeAccessToken(token.access_token, token.expires_in)
+      return true
+    } catch {
+      return false
+    } finally {
+      refreshInProgress = null
+    }
+  })()
+  return refreshInProgress
+}
+
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(url, options)
+  const send = () => fetch(url, {
+    ...options,
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      ...(options?.headers || {}),
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+    },
+  })
+  let response = await send()
+
+  // A 401 refreshes once, then the request is retried with the new access token.
+  if (response.status === 401 && !url.startsWith("/api/v1/auth")) {
+    const refreshed = await refreshAccessToken()
+    if (!refreshed) {
+      clearAccessToken()
+    } else {
+      response = await send()
+    }
+  }
   if (!response.ok) {
     let message = `Request failed: ${response.status}`
     try {
@@ -78,21 +153,12 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
     }
     throw new Error(message)
   }
+  if (response.status === 204) return undefined as T
   return response.json() as Promise<T>
 }
 
 async function remove(url: string): Promise<void> {
-  const response = await fetch(url, { method: "DELETE" })
-  if (!response.ok) {
-    let message = `Request failed: ${response.status}`
-    try {
-      const body: { detail?: string } = await response.json()
-      if (body.detail) message = body.detail
-    } catch {
-      // Use the HTTP status when the server does not return JSON.
-    }
-    throw new Error(message)
-  }
+  await request<void>(url, { method: "DELETE" })
 }
 
 export function listUniversities(): Promise<University[]> {
@@ -121,4 +187,46 @@ export function updateUniversity(id: number, data: UniversityInput): Promise<Uni
 
 export function deleteUniversity(id: number): Promise<void> {
   return remove(`/api/v1/universities/${id}`)
+}
+
+export async function login(data: LoginInput): Promise<AuthUser> {
+  const response = await fetch("/api/v1/auth/login", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  })
+  if (!response.ok) {
+    const body = await response.json().catch(() => null) as { detail?: string } | null
+    throw new Error(body?.detail || `Login failed (${response.status})`)
+  }
+  const token = await response.json() as { access_token: string; expires_in: number }
+  storeAccessToken(token.access_token, token.expires_in)
+  return getCurrentUser()
+}
+
+export function getCurrentUser(): Promise<AuthUser> {
+  return request<AuthUser>("/api/v1/auth/me")
+}
+
+export async function logout(): Promise<void> {
+  await request<void>("/api/v1/auth/logout", { method: "POST" })
+  clearAccessToken()
+}
+
+export async function restoreSession(): Promise<AuthUser | null> {
+  if (accessToken && accessExpiresAt > Date.now()) {
+    try {
+      return await getCurrentUser()
+    } catch {
+      clearAccessToken()
+    }
+  }
+  if (!(await refreshAccessToken())) return null
+  try {
+    return await getCurrentUser()
+  } catch {
+    clearAccessToken()
+    return null
+  }
 }
