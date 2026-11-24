@@ -91,6 +91,25 @@ export type CreateEditorInput = {
   password: string
 }
 
+export type ActivityLog = {
+  id: string
+  action: string
+  account_id: string | null
+  account_email: string | null
+  target_id: string | null
+  detail: string | null
+  ip_address: string | null
+  user_agent: string | null
+  created_at: string
+}
+
+export type ActivityLogPage = {
+  items: ActivityLog[]
+  total: number
+  offset: number
+  limit: number
+}
+
 export type LoginInput = {
   email: string
   password: string
@@ -285,4 +304,20 @@ export function changeUserStatus(id: string, isActive: boolean): Promise<AdminUs
 
 export function deleteAdminUser(id: string): Promise<void> {
   return remove(`/api/v1/admin/users/${id}`)
+}
+
+export function listActivityLogs(params: {
+  search?: string
+  action?: string
+  ipAddress?: string
+  offset?: number
+  limit?: number
+}): Promise<ActivityLogPage> {
+  const query = new URLSearchParams()
+  if (params.search) query.set("search", params.search)
+  if (params.action) query.set("action", params.action)
+  if (params.ipAddress) query.set("ip_address", params.ipAddress)
+  query.set("offset", String(params.offset ?? 0))
+  query.set("limit", String(params.limit ?? 20))
+  return request<ActivityLogPage>(`/api/v1/admin/logs?${query.toString()}`)
 }

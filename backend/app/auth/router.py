@@ -17,6 +17,8 @@ from app.auth.schemas import (
 from app.auth.service import AuthService
 from app.config import settings
 from app.database import SessionDep
+from app.activity.models import ActivityAction
+from app.activity.recorder import record_activity
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 COOKIE_NAME = "prospekt_refresh"
@@ -46,8 +48,25 @@ def clear_refresh_cookie(response: Response) -> None:
 
 
 @router.post("/login", response_model=TokenResponse)
-def login(data: LoginRequest, request: Request, response: Response, service: AuthServiceDep) -> TokenResponse:
-    user, access_token, refresh_token = service.login(data, request)
+def login(data: LoginRequest, request: Request, response: Response, service: AuthServiceDep, session: SessionDep) -> TokenResponse:
+    try:
+        user, access_token, refresh_token = service.login(data, request)
+    except HTTPException as exc:
+        record_activity(
+            session,
+            ActivityAction.LOGIN_FAILED,
+            request=request,
+            account_email=str(data.email),
+            detail=f"Login rejected: {exc.detail}",
+        )
+        raise
+    record_activity(
+        session,
+        ActivityAction.LOGIN_SUCCESS,
+        request=request,
+        account=user,
+        detail="Login successful",
+    )
     set_refresh_cookie(response, refresh_token)
     return TokenResponse(access_token=access_token, expires_in=settings.ACCESS_TOKEN_MINUTES * 60)
 
@@ -68,9 +87,14 @@ def refresh(
 def logout(
     response: Response,
     service: AuthServiceDep,
+    request: Request,
+    session: SessionDep,
+    user: CurrentUser,
     refresh_token: Annotated[str | None, Cookie(alias=COOKIE_NAME)] = None,
 ) -> None:
     service.logout(refresh_token)
+    if user is not None:
+        record_activity(session, ActivityAction.LOGOUT, request=request, account=user)
     clear_refresh_cookie(response)
 
 
@@ -85,8 +109,21 @@ def update_profile(data: ProfileUpdateRequest, user: CurrentUser, service: AuthS
 
 
 @router.post("/password", status_code=204)
-def change_password(data: PasswordChangeRequest, user: CurrentUser, service: AuthServiceDep) -> None:
+def change_password(
+    data: PasswordChangeRequest,
+    user: CurrentUser,
+    service: AuthServiceDep,
+    request: Request,
+    session: SessionDep,
+) -> None:
     service.change_password(user, data)
+    record_activity(
+        session,
+        ActivityAction.PASSWORD_CHANGE,
+        request=request,
+        account=user,
+        detail="Password changed",
+    )
 
 
 @router.get("/sessions", response_model=list[SessionRead])

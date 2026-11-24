@@ -13,7 +13,9 @@ import {
   changeUserRole,
   changeUserStatus,
   deleteAdminUser,
+  listActivityLogs,
   type AdminUser,
+  type ActivityLog,
   type AuthUser,
   type University,
   type UniversityInput,
@@ -276,13 +278,18 @@ export default function App() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
-  const [page, setPage] = useState<"prospectuses" | "users">("prospectuses")
+  const [page, setPage] = useState<"prospectuses" | "users" | "logs">("prospectuses")
   const [adminUsers, setAdminUsers] = useState<AdminUser[]>([])
   const [adminSearch, setAdminSearch] = useState("")
   const [adminRole, setAdminRole] = useState("")
   const [adminStatus, setAdminStatus] = useState("")
   const [adminLoading, setAdminLoading] = useState(false)
   const [editorForm, setEditorForm] = useState({ name: "", email: "", password: "" })
+  const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([])
+  const [logSearch, setLogSearch] = useState("")
+  const [logAction, setLogAction] = useState("")
+  const [logIpAddress, setLogIpAddress] = useState("")
+  const [logLoading, setLogLoading] = useState(false)
 
   useEffect(() => {
     void restoreSession()
@@ -326,6 +333,23 @@ export default function App() {
       setError(err instanceof Error ? err.message : "Could not load users.")
     } finally {
       setAdminLoading(false)
+    }
+  }
+
+  async function loadActivityLogs() {
+    setLogLoading(true)
+    setError("")
+    try {
+      const result = await listActivityLogs({
+        search: logSearch,
+        action: logAction,
+        ipAddress: logIpAddress,
+      })
+      setActivityLogs(result.items)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not load logs.")
+    } finally {
+      setLogLoading(false)
     }
   }
 
@@ -464,16 +488,35 @@ export default function App() {
           ) : authUser ? (
             <>
               {authUser.role === "admin" && (
-                <button
-                  type="button"
-                  className={page === "users" ? "secondary-button" : undefined}
-                  onClick={() => {
-                    setPage(page === "users" ? "prospectuses" : "users")
-                    if (page !== "users") void loadAdminUsers()
-                  }}
-                >
-                  {page === "users" ? "Prospectuses" : "Admin users"}
-                </button>
+                <>
+                  <button
+                    type="button"
+                    className={page === "prospectuses" ? "secondary-button" : undefined}
+                    onClick={() => setPage("prospectuses")}
+                  >
+                    Prospectuses
+                  </button>
+                  <button
+                    type="button"
+                    className={page === "users" ? "secondary-button" : undefined}
+                    onClick={() => {
+                      setPage("users")
+                      void loadAdminUsers()
+                    }}
+                  >
+                    Users
+                  </button>
+                  <button
+                    type="button"
+                    className={page === "logs" ? "secondary-button" : undefined}
+                    onClick={() => {
+                      setPage("logs")
+                      void loadActivityLogs()
+                    }}
+                  >
+                    Logs
+                  </button>
+                </>
               )}
               <span className="chip">{authUser.name} ({authUser.role})</span>
               <button type="button" onClick={() => void handleLogout()}>Log out</button>
@@ -644,7 +687,7 @@ export default function App() {
           </div>
         )}
       </section>
-      ) : (
+      ) : page === "users" ? (
         <section className="panel admin-users-page">
           <div className="section-heading">
             <div>
@@ -758,9 +801,74 @@ export default function App() {
             )}
           </div>
         </section>
-      )}
+      ) : page === "logs" ? (
+        <section className="panel admin-logs-page">
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">Audit and security</p>
+              <h2>Logs</h2>
+            </div>
+          </div>
 
-      {page === "prospectuses" && (
+          <div className="admin-log-filters">
+            <Field id="log-search" label="Search" value={logSearch} onChange={setLogSearch} />
+            <div className="field">
+              <label htmlFor="log-action">Action</label>
+              <select id="log-action" value={logAction} onChange={(event) => setLogAction(event.target.value)}>
+                <option value="">All actions</option>
+                <option value="login_success">Successful login</option>
+                <option value="login_failed">Failed login</option>
+                <option value="logout">Logout</option>
+                <option value="password_change">Password change</option>
+                <option value="account_created">Account created</option>
+                <option value="account_deleted">Account deleted</option>
+                <option value="account_activated">Account activated</option>
+                <option value="account_deactivated">Account deactivated</option>
+                <option value="role_promoted">Role promoted</option>
+                <option value="role_demoted">Role demoted</option>
+                <option value="university_created">University created</option>
+                <option value="university_updated">University updated</option>
+                <option value="university_deleted">University deleted</option>
+                <option value="access_denied">Access denied</option>
+              </select>
+            </div>
+            <Field id="log-ip" label="IP address" value={logIpAddress} onChange={setLogIpAddress} />
+            <button type="button" onClick={() => void loadActivityLogs()} disabled={logLoading}>
+              {logLoading ? "Loading..." : "Apply filters"}
+            </button>
+          </div>
+
+          <div className="admin-log-table-wrap">
+            <table className="admin-log-table">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Action</th>
+                  <th>Account</th>
+                  <th>IP address</th>
+                  <th>Browser</th>
+                  <th>Details</th>
+                </tr>
+              </thead>
+              <tbody>
+                {activityLogs.map((entry) => (
+                  <tr key={entry.id}>
+                    <td>{new Date(entry.created_at).toLocaleString()}</td>
+                    <td><span className="log-action">{entry.action.replaceAll("_", " ")}</span></td>
+                    <td>{entry.account_email || "Unknown"}</td>
+                    <td>{entry.ip_address || "Unknown"}</td>
+                    <td className="user-agent">{entry.user_agent || "Unknown"}</td>
+                    <td>{entry.detail || "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {!logLoading && activityLogs.length === 0 && (
+              <p className="empty-message">No matching log entries found.</p>
+            )}
+          </div>
+        </section>
+      ) : (
       <section className="main-column">
 
           {authUser &&

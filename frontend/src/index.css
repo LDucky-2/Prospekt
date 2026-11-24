@@ -789,3 +789,64 @@ textarea:focus {
     grid-column: auto;
   }
 }
+
+.admin-logs-page {
+  display: grid;
+  gap: 1rem;
+}
+
+.admin-log-filters {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) 180px 180px auto;
+  align-items: end;
+  gap: 0.75rem;
+}
+
+.admin-log-table-wrap {
+  overflow-x: auto;
+}
+
+.admin-log-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #ffffff;
+}
+
+.admin-log-table th,
+.admin-log-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+  vertical-align: top;
+}
+
+.admin-log-table th {
+  color: #6b7280;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.log-action {
+  display: inline-block;
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #374151;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.user-agent {
+  max-width: 260px;
+  color: #6b7280;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 860px) {
+  .admin-log-filters {
+    grid-template-columns: 1fr;
+  }
+}
