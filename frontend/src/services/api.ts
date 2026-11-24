@@ -122,6 +122,7 @@ let accessExpiresAt = Number(sessionStorage.getItem(EXPIRY_KEY) || "0")
 let refreshInProgress: Promise<boolean> | null = null
 
 function storeAccessToken(token: string, expiresIn: number) {
+  // Store access-token expiry separately so stale tokens are never used after reload.
   accessToken = token
   accessExpiresAt = Date.now() + expiresIn * 1000
   sessionStorage.setItem(TOKEN_KEY, token)
@@ -136,6 +137,7 @@ function clearAccessToken() {
 }
 
 async function refreshAccessToken(): Promise<boolean> {
+  // Share one refresh request when several API calls detect a 401 at the same time.
   if (refreshInProgress) return refreshInProgress
   refreshInProgress = (async () => {
     try {
@@ -157,6 +159,7 @@ async function refreshAccessToken(): Promise<boolean> {
 }
 
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
+  // Every API call adds the bearer token, refreshes once on 401, and keeps errors consistent.
   const send = () => fetch(url, {
     ...options,
     credentials: "include",

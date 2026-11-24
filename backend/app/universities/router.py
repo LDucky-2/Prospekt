@@ -26,6 +26,7 @@ def create_university(
     request: Request,
     session: SessionDep,
 ) -> University:
+    # University creation is protected by the RBAC dependency and logged for admins.
     university = service.create_university(data)
     record_activity(
         session,

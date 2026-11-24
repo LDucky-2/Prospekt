@@ -40,3 +40,44 @@ Open the Vite URL shown in the terminal (usually `http://localhost:5173`). Keep 
 
 
 #
+
+## Final deployment setup
+
+The application uses a hosted PostgreSQL database in production and SQLite only for local development.
+
+Set these values in Vercel:
+
+- `DATABASE_URL` or `POSTGRES_URL`: hosted PostgreSQL connection string
+- `JWT_SECRET`: long random signing secret
+- `PASSWORD_PEPPER`: long random password pepper
+- `ACCESS_TOKEN_MINUTES`: access-token lifetime, recommended value `15`
+- `REFRESH_TOKEN_DAYS`: refresh-session lifetime
+- `INITIAL_ADMIN_EMAIL`: email of the first admin account
+- `INITIAL_ADMIN_PASSWORD`: password of the first admin account
+- `INITIAL_ADMIN_NAME`: name of the first admin account
+- `FRONTEND_URL`: exact deployed frontend origin
+
+Never commit real values or the `.env` file.
+
+### Local test commands
+
+```powershell
+cd backend
+.\.venv\Scripts\python.exe -m pytest
+```
+
+```powershell
+cd frontend
+npm run build
+```
+
+### Vercel smoke test
+
+1. Open the deployed frontend.
+2. Log in with the initial admin account.
+3. Confirm public prospectuses are readable.
+4. Confirm the admin Users and Logs pages work.
+5. Create and delete a test editor account.
+6. Create a test university only as admin.
+7. Open `/api/docs` and confirm it loads.
+8. Reload a deep link and verify the React page remains accessible.

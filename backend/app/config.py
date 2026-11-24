@@ -41,5 +41,13 @@ class Settings(BaseSettings):
         db_dir = Path("/tmp") if self.VERCEL else BACKEND_DIR
         return f"sqlite:///{(db_dir / 'prospekt.db').as_posix()}"
 
+    def validate_production_secrets(self) -> None:
+        if not self.VERCEL:
+            return
+        if self.JWT_SECRET.startswith("prospekt-local-development"):
+            raise RuntimeError("JWT_SECRET must be set to a production secret")
+        if self.PASSWORD_PEPPER.startswith("prospekt-local-development"):
+            raise RuntimeError("PASSWORD_PEPPER must be set to a production secret")
+
 
 settings = Settings()

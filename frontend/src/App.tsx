@@ -266,6 +266,7 @@ function DetailSection({ title, entries }: { title: string; entries: [string, Re
 }
 
 export default function App() {
+  // Top-level state separates public prospectus browsing, admin account management and audit logs.
   const [universities, setUniversities] = useState<University[]>([])
   const [authUser, setAuthUser] = useState<AuthUser | null>(null)
   const [authLoading, setAuthLoading] = useState(true)
@@ -292,6 +293,7 @@ export default function App() {
   const [logLoading, setLogLoading] = useState(false)
 
   useEffect(() => {
+    // Restore the session before rendering authenticated controls, avoiding guest-content flashes.
     void restoreSession()
       .then(setAuthUser)
       .finally(() => setAuthLoading(false))
@@ -320,6 +322,7 @@ export default function App() {
   }
 
   async function loadAdminUsers() {
+    // Reload the Users table after filters or account actions change server state.
     setAdminLoading(true)
     setError("")
     try {
@@ -337,6 +340,7 @@ export default function App() {
   }
 
   async function loadActivityLogs() {
+    // Search and filter parameters are sent to the server for the Logs table.
     setLogLoading(true)
     setError("")
     try {
@@ -567,6 +571,7 @@ export default function App() {
           <p className="panel state-message">No prospectuses have been added yet.</p>
         ) : (
           <div className="university-accordions">
+            {/* University -> prospectus -> unit is intentionally nested to keep information compact. */}
             {universities.map((university, universityIndex) => (
               <details className="university-accordion" key={university.id} open={universityIndex === 0}>
                 <summary>
@@ -689,6 +694,7 @@ export default function App() {
       </section>
       ) : page === "users" ? (
         <section className="panel admin-users-page">
+          {/* This page is available only to admins; account actions are also enforced by the API. */}
           <div className="section-heading">
             <div>
               <p className="eyebrow">Account management</p>
@@ -803,6 +809,7 @@ export default function App() {
         </section>
       ) : page === "logs" ? (
         <section className="panel admin-logs-page">
+          {/* Audit entries show account, network, browser and action context for admins. */}
           <div className="section-heading">
             <div>
               <p className="eyebrow">Audit and security</p>

@@ -6,6 +6,7 @@ from app.auth.models import AppUser
 
 
 def request_info(request: Request | None) -> tuple[str | None, str | None]:
+    # Browser and network details are copied safely before creating an audit record.
     if request is None:
         return None, None
     ip_address = request.client.host if request.client else None

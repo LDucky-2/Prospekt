@@ -10,6 +10,7 @@ from app.config import settings
 
 password_hash = PasswordHash.recommended()
 
+# Password and token helpers keep cryptographic details out of routers and services.
 
 def utc_now() -> datetime:
     return datetime.now(timezone.utc)
@@ -25,6 +26,7 @@ def verify_password(password: str, hashed: str) -> bool:
 
 
 def create_access_token(user_id: UUID, role: str) -> str:
+    # Access tokens are short-lived and identify the account and role.
     now = utc_now()
     return jwt.encode(
         {
