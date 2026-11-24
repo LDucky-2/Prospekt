@@ -1,3 +1,5 @@
+"""SQLModel database engine and request session dependency."""
+
 from collections.abc import Iterator
 from typing import Annotated
 
@@ -18,6 +20,7 @@ else:
 
 
 def create_db_and_tables() -> None:
+    # Keep table creation for development; hosted production data changes should use migrations.
     SQLModel.metadata.create_all(engine)
 
 

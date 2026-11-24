@@ -1,3 +1,5 @@
+"""Authentication business rules for login, refresh and account changes."""
+
 from datetime import timedelta
 from uuid import UUID, uuid4
 
@@ -23,6 +25,7 @@ class AuthService:
 
     def login(self, data: LoginRequest, request: Request) -> tuple[AppUser, str, str]:
         """Authenticate, enforce lockout, and create a rotated refresh session."""
+        # Failed attempts are counted on the account before generic login errors are returned.
         user = self.repository.get_user_by_email(data.email)
         now = utc_now()
 
@@ -67,6 +70,7 @@ class AuthService:
         return user, access_token, refresh_token
 
     def refresh(self, raw_token: str | None, request: Request) -> tuple[str, str]:
+        # One refresh token is replaced by a new token whenever an access token is renewed.
         if not raw_token:
             raise HTTPException(status_code=401, detail="Refresh session missing")
 

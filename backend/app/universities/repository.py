@@ -1,3 +1,5 @@
+"""Database queries for listing, loading, creating and deleting universities."""
+
 from __future__ import annotations
 
 from sqlalchemy.orm import selectinload

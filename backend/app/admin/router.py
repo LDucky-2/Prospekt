@@ -1,3 +1,5 @@
+"""Admin-only HTTP routes for account management and audit logs."""
+
 from typing import Annotated
 from uuid import UUID
 
@@ -23,6 +25,7 @@ from app.rbac.permissions import Permission
 
 router = APIRouter(prefix="/api/v1/admin", tags=["admin"])
 
+# Admin account actions reject changes to the current administrator's own account.
 
 def ensure_not_self(current_user: AppUser, target_id: UUID) -> None:
     if current_user.id == target_id:
@@ -70,6 +73,7 @@ def create_editor(
     request: Request,
     session: SessionDep,
 ) -> AppUser:
+    # Only admins can create editor accounts; all new accounts start as editors.
     existing = repository.get_user_by_email(str(data.email))
     if existing is not None:
         raise HTTPException(status_code=409, detail="An account with this email already exists")

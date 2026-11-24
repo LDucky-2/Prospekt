@@ -1,3 +1,5 @@
+"""FastAPI dependencies for authentication and current-user lookup."""
+
 from typing import Annotated
 
 import jwt
@@ -23,6 +25,7 @@ def get_current_user(
     repository: AuthRepository = Depends(get_auth_repository),
 ) -> AppUser:
     """Verify JWT signature and current account status for every protected request."""
+    # The authorization header must contain a bearer token for protected routes.
     if not authorization or not authorization.lower().startswith("bearer "):
         raise HTTPException(status_code=401, detail="Not authenticated")
 

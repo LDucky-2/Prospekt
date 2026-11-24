@@ -1,3 +1,5 @@
+"""SQLModel tables for universities, units and their nested admissions data."""
+
 from datetime import date, datetime, timezone
 
 from sqlmodel import Field, Relationship, SQLModel
@@ -23,6 +25,7 @@ class University(SQLModel, table=True):
 
 
 class Unit(SQLModel, table=True):
+    # A university can contain several units, each with separate admissions information.
     id: int | None = Field(default=None, primary_key=True)
     university_id: int | None = Field(
         default=None,

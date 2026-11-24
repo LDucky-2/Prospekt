@@ -1,3 +1,4 @@
+// Vite development configuration and proxy from /api to the FastAPI server.
 import react from "@vitejs/plugin-react"
 import { defineConfig } from "vite"
 

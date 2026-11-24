@@ -1,3 +1,5 @@
+"""Permission constants shared by backend authorization checks."""
+
 from enum import Enum
 
 

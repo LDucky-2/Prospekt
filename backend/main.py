@@ -1,3 +1,5 @@
+"""Application entry point for the Prospectus FastAPI server."""
+
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -18,6 +20,10 @@ from app.errors import AppError
 
 logger = logging.getLogger("prospekt")
 
+settings.validate_production_secrets()
+
+# Central app setup: API routes, browser security, CORS and frontend hosting are registered here.
+
 app = FastAPI(
     title="Prospekt API",
     version="0.1.0",
@@ -37,6 +43,17 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    """Add browser security headers and avoid exposing application internals."""
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    return response
 
 app.include_router(auth_router)
 app.include_router(admin_router)

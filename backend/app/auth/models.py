@@ -1,3 +1,5 @@
+"""Database models for users, roles and refresh-token sessions."""
+
 from datetime import datetime, timezone
 from enum import Enum
 from uuid import UUID, uuid4

@@ -1,3 +1,5 @@
+"""Database model and action names for audit and security activity logs."""
+
 from datetime import datetime, timezone
 from enum import Enum
 from uuid import UUID, uuid4

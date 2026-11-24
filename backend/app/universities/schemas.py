@@ -1,3 +1,5 @@
+"""Pydantic and SQLModel schemas for university create, read and update requests."""
+
 from datetime import date, datetime, timezone
 from typing import Annotated
 
@@ -28,6 +30,7 @@ class EligibilityRuleInput(SQLModel):
     second_time_allowed: bool | None = None
     second_time_penalty_marks: str | None = None
     subject_requirements: str | None = None
+    model_config = ConfigDict(coerce_numbers_to_str=True)
 
 
 class MarkDistributionInput(SQLModel):
@@ -37,11 +40,13 @@ class MarkDistributionInput(SQLModel):
     negative_marking_penalty: str | None = None
     pass_mark_total: str | None = None
     subject_breakout: str | None = None
+    model_config = ConfigDict(coerce_numbers_to_str=True)
 
 
 class SeatInfoInput(SQLModel):
     general_seats: str | None = None
     quota_breakdown: str | None = None
+    model_config = ConfigDict(coerce_numbers_to_str=True)
 
 
 class ImportantDateInput(SQLModel):
@@ -54,6 +59,7 @@ class ImportantDateInput(SQLModel):
 class FeeStructureInput(SQLModel):
     application_fee: str | None = None
     payment_methods: str | None = None
+    model_config = ConfigDict(coerce_numbers_to_str=True)
 
 
 class UnitInput(SQLModel):
@@ -65,6 +71,7 @@ class UnitInput(SQLModel):
     seat_info: SeatInfoInput | None = None
     important_date: ImportantDateInput | None = None
     fee_structure: FeeStructureInput | None = None
+    model_config = ConfigDict(coerce_numbers_to_str=True)
 
 
 class UniversityCreate(UniversityInput):

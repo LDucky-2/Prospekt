@@ -1,3 +1,5 @@
+"""HTTP endpoints for login, refresh, logout, profile and sessions."""
+
 from typing import Annotated
 from uuid import UUID
 
@@ -32,6 +34,7 @@ AuthServiceDep = Annotated[AuthService, Depends(get_auth_service)]
 
 
 def set_refresh_cookie(response: Response, token: str) -> None:
+    # The refresh token is sent only through HTTP-only cookies; JavaScript cannot read it.
     response.set_cookie(
         COOKIE_NAME,
         token,

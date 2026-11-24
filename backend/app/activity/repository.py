@@ -1,3 +1,5 @@
+"""Database queries for searchable and paginated activity logs."""
+
 from sqlmodel import Session, select
 
 from app.activity.models import ActivityAction, ActivityLog
