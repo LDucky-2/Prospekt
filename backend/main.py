@@ -10,6 +10,7 @@ from app.database import create_db_and_tables
 from app.database import get_session
 from app.universities.router import router as universities_router
 from app.auth.router import router as auth_router
+from app.admin.router import router as admin_router
 from app.auth.models import AppUser, UserRole
 from app.auth.security import hash_password
 from app.config import settings
@@ -38,6 +39,7 @@ app.add_middleware(
 )
 
 app.include_router(auth_router)
+app.include_router(admin_router)
 app.include_router(universities_router)
 create_db_and_tables()
 

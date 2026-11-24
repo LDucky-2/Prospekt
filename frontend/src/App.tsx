@@ -8,6 +8,12 @@ import {
   login,
   logout,
   restoreSession,
+  listAdminUsers,
+  createEditor,
+  changeUserRole,
+  changeUserStatus,
+  deleteAdminUser,
+  type AdminUser,
   type AuthUser,
   type University,
   type UniversityInput,
@@ -270,6 +276,13 @@ export default function App() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
+  const [page, setPage] = useState<"prospectuses" | "users">("prospectuses")
+  const [adminUsers, setAdminUsers] = useState<AdminUser[]>([])
+  const [adminSearch, setAdminSearch] = useState("")
+  const [adminRole, setAdminRole] = useState("")
+  const [adminStatus, setAdminStatus] = useState("")
+  const [adminLoading, setAdminLoading] = useState(false)
+  const [editorForm, setEditorForm] = useState({ name: "", email: "", password: "" })
 
   useEffect(() => {
     void restoreSession()
@@ -295,6 +308,36 @@ export default function App() {
       await logout()
     } finally {
       setAuthUser(null)
+      setPage("prospectuses")
+    }
+  }
+
+  async function loadAdminUsers() {
+    setAdminLoading(true)
+    setError("")
+    try {
+      const result = await listAdminUsers({
+        search: adminSearch,
+        role: adminRole,
+        status: adminStatus,
+      })
+      setAdminUsers(result.items)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not load users.")
+    } finally {
+      setAdminLoading(false)
+    }
+  }
+
+  async function handleCreateEditor(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setError("")
+    try {
+      await createEditor(editorForm)
+      setEditorForm({ name: "", email: "", password: "" })
+      await loadAdminUsers()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not create editor.")
     }
   }
 
@@ -420,6 +463,18 @@ export default function App() {
             <span className="chip">Restoring session...</span>
           ) : authUser ? (
             <>
+              {authUser.role === "admin" && (
+                <button
+                  type="button"
+                  className={page === "users" ? "secondary-button" : undefined}
+                  onClick={() => {
+                    setPage(page === "users" ? "prospectuses" : "users")
+                    if (page !== "users") void loadAdminUsers()
+                  }}
+                >
+                  {page === "users" ? "Prospectuses" : "Admin users"}
+                </button>
+              )}
               <span className="chip">{authUser.name} ({authUser.role})</span>
               <button type="button" onClick={() => void handleLogout()}>Log out</button>
             </>
@@ -451,6 +506,7 @@ export default function App() {
 
       {error && <p className="notice error" role="alert">{error}</p>}
 
+      {page === "prospectuses" ? (
       <section className="accordion-layout">
         <div className="accordion-toolbar">
           <div>
@@ -588,7 +644,123 @@ export default function App() {
           </div>
         )}
       </section>
+      ) : (
+        <section className="panel admin-users-page">
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">Account management</p>
+              <h2>Admins and editors</h2>
+            </div>
+          </div>
 
+          <form className="editor-create-form" onSubmit={(event) => void handleCreateEditor(event)}>
+            <h3>Create editor account</h3>
+            <Field id="editor-name" label="Name" value={editorForm.name} onChange={(value) => setEditorForm((current) => ({ ...current, name: value }))} required />
+            <Field id="editor-email" label="Email" type="email" value={editorForm.email} onChange={(value) => setEditorForm((current) => ({ ...current, email: value }))} required />
+            <Field id="editor-password" label="Temporary password" type="password" value={editorForm.password} onChange={(value) => setEditorForm((current) => ({ ...current, password: value }))} required />
+            <button type="submit">Create editor</button>
+          </form>
+
+          <div className="admin-user-filters">
+            <Field id="admin-search" label="Search" value={adminSearch} onChange={setAdminSearch} />
+            <div className="field">
+              <label htmlFor="admin-role">Role</label>
+              <select id="admin-role" value={adminRole} onChange={(event) => setAdminRole(event.target.value)}>
+                <option value="">All roles</option>
+                <option value="admin">Admin</option>
+                <option value="editor">Editor</option>
+              </select>
+            </div>
+            <div className="field">
+              <label htmlFor="admin-status">Status</label>
+              <select id="admin-status" value={adminStatus} onChange={(event) => setAdminStatus(event.target.value)}>
+                <option value="">All statuses</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
+            <button type="button" onClick={() => void loadAdminUsers()} disabled={adminLoading}>
+              {adminLoading ? "Loading..." : "Apply filters"}
+            </button>
+          </div>
+
+          <div className="admin-user-table-wrap">
+            <table className="admin-user-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {adminUsers.map((user) => (
+                  <tr key={user.id}>
+                    <td>{user.name}</td>
+                    <td>{user.email}</td>
+                    <td>
+                      <select
+                        aria-label={`Role for ${user.name}`}
+                        value={user.role}
+                        disabled={user.id === authUser?.id}
+                        onChange={(event) => {
+                          void changeUserRole(user.id, event.target.value as "editor" | "admin")
+                            .then(loadAdminUsers)
+                            .catch((err: unknown) => setError(err instanceof Error ? err.message : "Could not change role"))
+                        }}
+                      >
+                        <option value="editor">Editor</option>
+                        <option value="admin">Admin</option>
+                      </select>
+                    </td>
+                    <td>
+                      <span className={user.is_active ? "status-active" : "status-inactive"}>
+                        {user.is_active ? "Active" : "Inactive"}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="button-row">
+                        <button
+                          type="button"
+                          className="secondary-button"
+                          disabled={user.id === authUser?.id}
+                          onClick={() => {
+                            void changeUserStatus(user.id, !user.is_active)
+                              .then(loadAdminUsers)
+                              .catch((err: unknown) => setError(err instanceof Error ? err.message : "Could not change status"))
+                          }}
+                        >
+                          {user.is_active ? "Deactivate" : "Reactivate"}
+                        </button>
+                        <button
+                          type="button"
+                          className="danger-button"
+                          disabled={user.id === authUser?.id}
+                          onClick={() => {
+                            if (!window.confirm(`Delete ${user.name}'s account?`)) return
+                            void deleteAdminUser(user.id)
+                              .then(loadAdminUsers)
+                              .catch((err: unknown) => setError(err instanceof Error ? err.message : "Could not delete account"))
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {!adminLoading && adminUsers.length === 0 && (
+              <p className="empty-message">No matching accounts found.</p>
+            )}
+          </div>
+        </section>
+      )}
+
+      {page === "prospectuses" && (
       <section className="main-column">
 
           {authUser &&
@@ -751,6 +923,7 @@ export default function App() {
             </section>
           )}
         </section>
+      )}
     </main>
   )
 }

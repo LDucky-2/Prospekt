@@ -76,6 +76,21 @@ export type AuthUser = {
   created_at: string
 }
 
+export type AdminUser = AuthUser
+
+export type AdminUserPage = {
+  items: AdminUser[]
+  total: number
+  offset: number
+  limit: number
+}
+
+export type CreateEditorInput = {
+  name: string
+  email: string
+  password: string
+}
+
 export type LoginInput = {
   email: string
   password: string
@@ -229,4 +244,45 @@ export async function restoreSession(): Promise<AuthUser | null> {
     clearAccessToken()
     return null
   }
+}
+
+export function listAdminUsers(params: {
+  search?: string
+  role?: string
+  status?: string
+  offset?: number
+  limit?: number
+}): Promise<AdminUserPage> {
+  const query = new URLSearchParams()
+  if (params.search) query.set("search", params.search)
+  if (params.role) query.set("role", params.role)
+  if (params.status) query.set("status", params.status)
+  query.set("offset", String(params.offset ?? 0))
+  query.set("limit", String(params.limit ?? 20))
+  return request<AdminUserPage>(`/api/v1/admin/users?${query.toString()}`)
+}
+
+export function createEditor(data: CreateEditorInput): Promise<AdminUser> {
+  return request<AdminUser>("/api/v1/admin/users", {
+    method: "POST",
+    body: JSON.stringify(data),
+  })
+}
+
+export function changeUserRole(id: string, role: "editor" | "admin"): Promise<AdminUser> {
+  return request<AdminUser>(`/api/v1/admin/users/${id}/role`, {
+    method: "PATCH",
+    body: JSON.stringify({ role }),
+  })
+}
+
+export function changeUserStatus(id: string, isActive: boolean): Promise<AdminUser> {
+  return request<AdminUser>(`/api/v1/admin/users/${id}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ is_active: isActive }),
+  })
+}
+
+export function deleteAdminUser(id: string): Promise<void> {
+  return remove(`/api/v1/admin/users/${id}`)
 }
