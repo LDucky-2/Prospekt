@@ -22,25 +22,25 @@ class UniversityInput(SQLModel):
 
 
 class EligibilityRuleInput(SQLModel):
-    min_ssc_gpa: float | None = None
-    min_hsc_gpa: float | None = None
-    combined_gpa: float | None = None
+    min_ssc_gpa: str | None = None
+    min_hsc_gpa: str | None = None
+    combined_gpa: str | None = None
     second_time_allowed: bool | None = None
-    second_time_penalty_marks: float | None = None
+    second_time_penalty_marks: str | None = None
     subject_requirements: str | None = None
 
 
 class MarkDistributionInput(SQLModel):
-    total_marks: int | None = None
-    mcq_marks: int | None = None
-    written_marks: int | None = None
-    negative_marking_penalty: float | None = None
-    pass_mark_total: float | None = None
+    total_marks: str | None = None
+    mcq_marks: str | None = None
+    written_marks: str | None = None
+    negative_marking_penalty: str | None = None
+    pass_mark_total: str | None = None
     subject_breakout: str | None = None
 
 
 class SeatInfoInput(SQLModel):
-    general_seats: int | None = None
+    general_seats: str | None = None
     quota_breakdown: str | None = None
 
 
@@ -52,14 +52,14 @@ class ImportantDateInput(SQLModel):
 
 
 class FeeStructureInput(SQLModel):
-    application_fee: float | None = None
+    application_fee: str | None = None
     payment_methods: str | None = None
 
 
 class UnitInput(SQLModel):
     unit_name: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=120)]
     background: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=40)]
-    total_seats: int | None = None
+    total_seats: str | None = None
     eligibility_rule: EligibilityRuleInput | None = None
     mark_distribution: MarkDistributionInput | None = None
     seat_info: SeatInfoInput | None = None

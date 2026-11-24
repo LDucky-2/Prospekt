@@ -134,44 +134,33 @@ function toFormValues(university: University): FormValues {
   }
 }
 
-function optionalNumber(value: string): number | null {
-  if (!value.trim()) return null
-  const parsed = Number(value)
-  if (!Number.isFinite(parsed)) throw new Error("Enter a valid number in all numeric fields.")
-  return parsed
-}
-
-function optionalInteger(value: string): number | null {
-  const parsed = optionalNumber(value)
-  if (parsed !== null && !Number.isInteger(parsed)) {
-    throw new Error("Seat and mark counts must be whole numbers.")
-  }
-  return parsed
+function optionalText(value: string): string | null {
+  return value.trim() ? value : null
 }
 
 function toUnitInput(form: UnitForm): UnitInput {
   return {
     unit_name: form.unit_name,
     background: form.background,
-    total_seats: optionalInteger(form.total_seats),
+    total_seats: optionalText(form.total_seats),
     eligibility_rule: {
-      min_ssc_gpa: optionalNumber(form.min_ssc_gpa),
-      min_hsc_gpa: optionalNumber(form.min_hsc_gpa),
-      combined_gpa: optionalNumber(form.combined_gpa),
+      min_ssc_gpa: optionalText(form.min_ssc_gpa),
+      min_hsc_gpa: optionalText(form.min_hsc_gpa),
+      combined_gpa: optionalText(form.combined_gpa),
       second_time_allowed: form.second_time_allowed ? form.second_time_allowed === "true" : null,
-      second_time_penalty_marks: optionalNumber(form.second_time_penalty_marks),
+      second_time_penalty_marks: optionalText(form.second_time_penalty_marks),
       subject_requirements: form.subject_requirements.trim() || null,
     },
     mark_distribution: {
-      total_marks: optionalInteger(form.total_marks),
-      mcq_marks: optionalInteger(form.mcq_marks),
-      written_marks: optionalInteger(form.written_marks),
-      negative_marking_penalty: optionalNumber(form.negative_marking_penalty),
-      pass_mark_total: optionalNumber(form.pass_mark_total),
+      total_marks: optionalText(form.total_marks),
+      mcq_marks: optionalText(form.mcq_marks),
+      written_marks: optionalText(form.written_marks),
+      negative_marking_penalty: optionalText(form.negative_marking_penalty),
+      pass_mark_total: optionalText(form.pass_mark_total),
       subject_breakout: form.subject_breakout.trim() || null,
     },
     seat_info: {
-      general_seats: optionalInteger(form.general_seats),
+      general_seats: optionalText(form.general_seats),
       quota_breakdown: form.quota_breakdown.trim() || null,
     },
     important_date: {
@@ -181,7 +170,7 @@ function toUnitInput(form: UnitForm): UnitInput {
       exam_date: form.exam_date || null,
     },
     fee_structure: {
-      application_fee: optionalNumber(form.application_fee),
+      application_fee: optionalText(form.application_fee),
       payment_methods: form.payment_methods.trim() || null,
     },
   }
@@ -462,122 +451,145 @@ export default function App() {
 
       {error && <p className="notice error" role="alert">{error}</p>}
 
-      <section className="content-grid">
-        <aside className="panel sidebar">
-          <div className="section-heading">
-            <h2>Prospectuses</h2>
-            {authUser?.role === "admin" && (
-              <button type="button" onClick={startNew}>New university</button>
-            )}
+      <section className="accordion-layout">
+        <div className="accordion-toolbar">
+          <div>
+            <p className="eyebrow">Admission prospectuses</p>
+            <h2>Universities</h2>
           </div>
-          {loading ? (
-            <p>Loading records...</p>
-          ) : universities.length === 0 ? (
-            <p>No prospectuses have been added yet.</p>
-          ) : (
-            <ul className="record-list">
-              {universities.map((university) => (
-                <li key={university.id}>
-                  <button
-                    type="button"
-                    className={
-                      university.id === selectedUniversity?.id
-                        ? "record-button active"
-                        : "record-button"
-                    }
-                    onClick={() => void selectUniversity(university.id)}
-                  >
-                    <strong>{university.name}</strong>
-                    <span>Session {university.session}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
+          {authUser?.role === "admin" && (
+            <button type="button" onClick={startNew}>New university</button>
           )}
-        </aside>
+        </div>
 
-        <section className="main-column">
-          {selectedUniversity && !editing && (
-            <article className="panel detail-card">
-              <div className="section-heading">
-                <div>
-                  <p className="eyebrow">Prospectus details</p>
-                  <h2>{selectedUniversity.name}</h2>
+        {loading ? (
+          <p className="panel state-message">Loading universities...</p>
+        ) : universities.length === 0 ? (
+          <p className="panel state-message">No prospectuses have been added yet.</p>
+        ) : (
+          <div className="university-accordions">
+            {universities.map((university, universityIndex) => (
+              <details className="university-accordion" key={university.id} open={universityIndex === 0}>
+                <summary>
+                  <span>
+                    <strong>{university.name}</strong>
+                    <small>Admission session {university.session}</small>
+                  </span>
+                </summary>
+
+                <div className="university-actions">
+                  {authUser && (
+                    <div className="button-row">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          void selectUniversity(university.id)
+                          setEditing(true)
+                        }}
+                      >
+                        Edit prospectus
+                      </button>
+                      <button
+                        className="danger-button"
+                        type="button"
+                        onClick={() => {
+                          setSelectedUniversity(university)
+                          void (async () => {
+                            if (!window.confirm(`Delete the ${university.name} prospectus?`)) return
+                            try {
+                              await deleteUniversity(university.id)
+                              await loadUniversities()
+                            } catch (err) {
+                              setError(err instanceof Error ? err.message : "Could not delete this prospectus.")
+                            }
+                          })()
+                        }}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  )}
                 </div>
-                {authUser && (
-                  <div className="button-row">
-                    <button type="button" onClick={startEditing}>Edit</button>
-                    <button className="danger-button" type="button" onClick={() => void handleDelete()}>
-                      Delete
-                    </button>
+
+                <details className="prospectus-accordion" open>
+                  <summary>Prospectus information</summary>
+                  <div className="prospectus-content">
+                    <DetailSection title="University information" entries={[
+                      ["Admission session", university.session],
+                      ["Official website", university.website_url ? (
+                        <a href={university.website_url} target="_blank" rel="noreferrer">
+                          {university.website_url}
+                        </a>
+                      ) : null],
+                      ["Overview", university.overview || "Not provided"],
+                    ]} />
+                    <DetailSection title="University-wide schedule" entries={[
+                      ["Application opens", university.application_start],
+                      ["Application closes", university.application_end],
+                      ["Admit card download", university.admit_card_download],
+                      ["Admission exam", university.exam_date],
+                    ]} />
+
+                    <div className="unit-accordions">
+                      <h3>Units ({university.units.length})</h3>
+                      {university.units.length === 0 ? (
+                        <p className="empty-message">No units have been added to this university.</p>
+                      ) : university.units.map((unit) => (
+                        <details className="unit-accordion" key={unit.id}>
+                          <summary>
+                            <span>{unit.unit_name}</span>
+                            <small>{unit.background}</small>
+                          </summary>
+                          <div className="unit-content">
+                            <DetailSection title="Unit information" entries={[
+                              ["Background", unit.background],
+                              ["Total seats", unit.total_seats],
+                            ]} />
+                            <DetailSection title="Eligibility rules" entries={[
+                              ["Minimum SSC GPA", unit.eligibility_rule?.min_ssc_gpa],
+                              ["Minimum HSC GPA", unit.eligibility_rule?.min_hsc_gpa],
+                              ["Combined GPA", unit.eligibility_rule?.combined_gpa],
+                              ["Second-time applicants", unit.eligibility_rule?.second_time_allowed === null
+                                ? null
+                                : unit.eligibility_rule?.second_time_allowed ? "Allowed" : "Not allowed"],
+                              ["Second-time penalty marks", unit.eligibility_rule?.second_time_penalty_marks],
+                              ["Subject requirements", unit.eligibility_rule?.subject_requirements],
+                            ]} />
+                            <DetailSection title="Mark distribution" entries={[
+                              ["Total marks", unit.mark_distribution?.total_marks],
+                              ["MCQ marks", unit.mark_distribution?.mcq_marks],
+                              ["Written marks", unit.mark_distribution?.written_marks],
+                              ["Negative marking penalty", unit.mark_distribution?.negative_marking_penalty],
+                              ["Pass mark", unit.mark_distribution?.pass_mark_total],
+                              ["Subject breakdown", unit.mark_distribution?.subject_breakout],
+                            ]} />
+                            <DetailSection title="Seat information" entries={[
+                              ["General seats", unit.seat_info?.general_seats],
+                              ["Quota breakdown", unit.seat_info?.quota_breakdown],
+                            ]} />
+                            <DetailSection title="Important dates" entries={[
+                              ["Application opens", unit.important_date?.application_start],
+                              ["Application closes", unit.important_date?.application_end],
+                              ["Admit card available", unit.important_date?.admit_card_start],
+                              ["Admission exam", unit.important_date?.exam_date],
+                            ]} />
+                            <DetailSection title="Fee structure" entries={[
+                              ["Application fee", unit.fee_structure?.application_fee],
+                              ["Payment methods", unit.fee_structure?.payment_methods],
+                            ]} />
+                          </div>
+                        </details>
+                      ))}
+                    </div>
                   </div>
-                )}
-              </div>
-              <DetailSection title="University information" entries={[
-                ["Admission session", selectedUniversity.session],
-                ["Official website", selectedUniversity.website_url ? (
-                  <a href={selectedUniversity.website_url} target="_blank" rel="noreferrer">
-                    {selectedUniversity.website_url}
-                  </a>
-                ) : null],
-                ["Overview", selectedUniversity.overview || "Not provided"],
-              ]} />
-              <DetailSection title="University-wide schedule" entries={[
-                ["Application opens", selectedUniversity.application_start],
-                ["Application closes", selectedUniversity.application_end],
-                ["Admit card download", selectedUniversity.admit_card_download],
-                ["Admission exam", selectedUniversity.exam_date],
-              ]} />
-              <section className="units-display">
-                <div className="section-heading">
-                  <h3>Units ({selectedUniversity.units.length})</h3>
-                </div>
-                {selectedUniversity.units.length === 0 ? (
-                  <p>No units have been added to this university.</p>
-                ) : selectedUniversity.units.map((unit) => (
-                  <article className="unit-card" key={unit.id}>
-                    <h3>{unit.unit_name}</h3>
-                    <DetailSection title="Unit information" entries={[
-                      ["Background", unit.background],
-                      ["Total seats", unit.total_seats],
-                    ]} />
-                    <DetailSection title="Eligibility rules" entries={[
-                      ["Minimum SSC GPA", unit.eligibility_rule?.min_ssc_gpa],
-                      ["Minimum HSC GPA", unit.eligibility_rule?.min_hsc_gpa],
-                      ["Combined GPA", unit.eligibility_rule?.combined_gpa],
-                      ["Second-time applicants", unit.eligibility_rule?.second_time_allowed === null
-                        ? null
-                        : unit.eligibility_rule?.second_time_allowed ? "Allowed" : "Not allowed"],
-                      ["Second-time penalty marks", unit.eligibility_rule?.second_time_penalty_marks],
-                      ["Subject requirements", unit.eligibility_rule?.subject_requirements],
-                    ]} />
-                    <DetailSection title="Mark distribution" entries={[
-                      ["Total marks", unit.mark_distribution?.total_marks],
-                      ["MCQ marks", unit.mark_distribution?.mcq_marks],
-                      ["Written marks", unit.mark_distribution?.written_marks],
-                      ["Negative marking penalty", unit.mark_distribution?.negative_marking_penalty],
-                      ["Pass mark", unit.mark_distribution?.pass_mark_total],
-                      ["Subject breakdown", unit.mark_distribution?.subject_breakout],
-                    ]} />
-                    <DetailSection title="Seat information" entries={[
-                      ["General seats", unit.seat_info?.general_seats],
-                      ["Quota breakdown", unit.seat_info?.quota_breakdown],
-                    ]} />
-                    <DetailSection title="Important dates" entries={[
-                      ["Application opens", unit.important_date?.application_start],
-                      ["Application closes", unit.important_date?.application_end],
-                      ["Admit card available", unit.important_date?.admit_card_start],
-                      ["Admission exam", unit.important_date?.exam_date],
-                    ]} />
-                    <DetailSection title="Fee structure" entries={[
-                      ["Application fee", unit.fee_structure?.application_fee],
-                      ["Payment methods", unit.fee_structure?.payment_methods],
-                    ]} />
-                  </article>
-                ))}
-              </section>
-            </article>
-          )}
+                </details>
+              </details>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="main-column">
 
           {authUser &&
             ((!selectedUniversity && authUser.role === "admin") ||
@@ -664,13 +676,13 @@ export default function App() {
                             <option value="All">All backgrounds</option>
                           </select>
                         </div>
-                        <Field id={`total_seats_${index}`} label="Total seats" type="number" value={unit.total_seats} onChange={field("total_seats")} />
+                        <Field id={`total_seats_${index}`} label="Total seats" value={unit.total_seats} onChange={field("total_seats")} />
 
                         <fieldset className="nested-form-section">
                           <legend>Eligibility rules</legend>
-                          <Field id={`min_ssc_gpa_${index}`} label="Minimum SSC GPA" type="number" value={unit.min_ssc_gpa} onChange={field("min_ssc_gpa")} />
-                          <Field id={`min_hsc_gpa_${index}`} label="Minimum HSC GPA" type="number" value={unit.min_hsc_gpa} onChange={field("min_hsc_gpa")} />
-                          <Field id={`combined_gpa_${index}`} label="Combined GPA" type="number" value={unit.combined_gpa} onChange={field("combined_gpa")} />
+                          <Field id={`min_ssc_gpa_${index}`} label="Minimum SSC GPA" value={unit.min_ssc_gpa} onChange={field("min_ssc_gpa")} />
+                          <Field id={`min_hsc_gpa_${index}`} label="Minimum HSC GPA" value={unit.min_hsc_gpa} onChange={field("min_hsc_gpa")} />
+                          <Field id={`combined_gpa_${index}`} label="Combined GPA" value={unit.combined_gpa} onChange={field("combined_gpa")} />
                           <div className="field">
                             <label htmlFor={`second_time_allowed_${index}`}>Second-time applicants</label>
                             <select
@@ -683,23 +695,23 @@ export default function App() {
                               <option value="false">Not allowed</option>
                             </select>
                           </div>
-                          <Field id={`second_time_penalty_marks_${index}`} label="Second-time penalty marks" type="number" value={unit.second_time_penalty_marks} onChange={field("second_time_penalty_marks")} />
+                          <Field id={`second_time_penalty_marks_${index}`} label="Second-time penalty marks" value={unit.second_time_penalty_marks} onChange={field("second_time_penalty_marks")} />
                           <Field id={`subject_requirements_${index}`} label="Subject requirements" value={unit.subject_requirements} onChange={field("subject_requirements")} multiline />
                         </fieldset>
 
                         <fieldset className="nested-form-section">
                           <legend>Mark distribution</legend>
-                          <Field id={`total_marks_${index}`} label="Total marks" type="number" value={unit.total_marks} onChange={field("total_marks")} />
-                          <Field id={`mcq_marks_${index}`} label="MCQ marks" type="number" value={unit.mcq_marks} onChange={field("mcq_marks")} />
-                          <Field id={`written_marks_${index}`} label="Written marks" type="number" value={unit.written_marks} onChange={field("written_marks")} />
-                          <Field id={`negative_marking_penalty_${index}`} label="Negative marking penalty" type="number" value={unit.negative_marking_penalty} onChange={field("negative_marking_penalty")} />
-                          <Field id={`pass_mark_total_${index}`} label="Pass mark" type="number" value={unit.pass_mark_total} onChange={field("pass_mark_total")} />
+                          <Field id={`total_marks_${index}`} label="Total marks" value={unit.total_marks} onChange={field("total_marks")} />
+                          <Field id={`mcq_marks_${index}`} label="MCQ marks" value={unit.mcq_marks} onChange={field("mcq_marks")} />
+                          <Field id={`written_marks_${index}`} label="Written marks" value={unit.written_marks} onChange={field("written_marks")} />
+                          <Field id={`negative_marking_penalty_${index}`} label="Negative marking penalty" value={unit.negative_marking_penalty} onChange={field("negative_marking_penalty")} />
+                          <Field id={`pass_mark_total_${index}`} label="Pass mark" value={unit.pass_mark_total} onChange={field("pass_mark_total")} />
                           <Field id={`subject_breakout_${index}`} label="Subject mark breakdown" value={unit.subject_breakout} onChange={field("subject_breakout")} placeholder="e.g. English 30 marks, General Knowledge 20 marks" multiline />
                         </fieldset>
 
                         <fieldset className="nested-form-section">
                           <legend>Seat information</legend>
-                          <Field id={`general_seats_${index}`} label="General seats" type="number" value={unit.general_seats} onChange={field("general_seats")} />
+                          <Field id={`general_seats_${index}`} label="General seats" value={unit.general_seats} onChange={field("general_seats")} />
                           <Field id={`quota_breakdown_${index}`} label="Seat quota breakdown" value={unit.quota_breakdown} onChange={field("quota_breakdown")} placeholder="e.g. Freedom Fighter: 5 seats, Tribal: 3 seats" multiline />
                         </fieldset>
 
@@ -713,7 +725,7 @@ export default function App() {
 
                         <fieldset className="nested-form-section">
                           <legend>Fee structure</legend>
-                          <Field id={`application_fee_${index}`} label="Application fee" type="number" value={unit.application_fee} onChange={field("application_fee")} />
+                          <Field id={`application_fee_${index}`} label="Application fee" value={unit.application_fee} onChange={field("application_fee")} />
                           <Field id={`payment_methods_${index}`} label="Payment methods and instructions" value={unit.payment_methods} onChange={field("payment_methods")} multiline />
                         </fieldset>
                       </fieldset>
@@ -739,7 +751,6 @@ export default function App() {
             </section>
           )}
         </section>
-      </section>
     </main>
   )
 }

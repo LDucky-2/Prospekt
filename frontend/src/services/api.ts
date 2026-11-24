@@ -1,23 +1,23 @@
 export type EligibilityRule = {
-  min_ssc_gpa: number | null
-  min_hsc_gpa: number | null
-  combined_gpa: number | null
+  min_ssc_gpa: string | null
+  min_hsc_gpa: string | null
+  combined_gpa: string | null
   second_time_allowed: boolean | null
-  second_time_penalty_marks: number | null
+  second_time_penalty_marks: string | null
   subject_requirements: string | null
 }
 
 export type MarkDistribution = {
-  total_marks: number | null
-  mcq_marks: number | null
-  written_marks: number | null
-  negative_marking_penalty: number | null
-  pass_mark_total: number | null
+  total_marks: string | null
+  mcq_marks: string | null
+  written_marks: string | null
+  negative_marking_penalty: string | null
+  pass_mark_total: string | null
   subject_breakout: string | null
 }
 
 export type SeatInfo = {
-  general_seats: number | null
+  general_seats: string | null
   quota_breakdown: string | null
 }
 
@@ -29,7 +29,7 @@ export type ImportantDate = {
 }
 
 export type FeeStructure = {
-  application_fee: number | null
+  application_fee: string | null
   payment_methods: string | null
 }
 
@@ -37,7 +37,7 @@ export type Unit = {
   id: number
   unit_name: string
   background: string
-  total_seats: number | null
+  total_seats: string | null
   eligibility_rule: EligibilityRule | null
   mark_distribution: MarkDistribution | null
   seat_info: SeatInfo | null
