@@ -33,7 +33,7 @@ class Unit(SQLModel, table=True):
     )
     unit_name: str = Field(max_length=120)
     background: str = Field(max_length=40)
-    total_seats: int | None = None
+    total_seats: str | None = None
     university: University = Relationship(back_populates="units")
     eligibility_rule: "EligibilityRule" = Relationship(
         back_populates="unit",
@@ -67,11 +67,11 @@ class EligibilityRule(SQLModel, table=True):
     unit_id: int | None = Field(
         default=None, foreign_key="unit.id", ondelete="CASCADE", unique=True, nullable=False
     )
-    min_ssc_gpa: float | None = None
-    min_hsc_gpa: float | None = None
-    combined_gpa: float | None = None
+    min_ssc_gpa: str | None = None
+    min_hsc_gpa: str | None = None
+    combined_gpa: str | None = None
     second_time_allowed: bool | None = None
-    second_time_penalty_marks: float | None = None
+    second_time_penalty_marks: str | None = None
     subject_requirements: str | None = None
     unit: Unit = Relationship(back_populates="eligibility_rule")
 
@@ -81,11 +81,11 @@ class MarkDistribution(SQLModel, table=True):
     unit_id: int | None = Field(
         default=None, foreign_key="unit.id", ondelete="CASCADE", unique=True, nullable=False
     )
-    total_marks: int | None = None
-    mcq_marks: int | None = None
-    written_marks: int | None = None
-    negative_marking_penalty: float | None = None
-    pass_mark_total: float | None = None
+    total_marks: str | None = None
+    mcq_marks: str | None = None
+    written_marks: str | None = None
+    negative_marking_penalty: str | None = None
+    pass_mark_total: str | None = None
     subject_breakout: str | None = None
     unit: Unit = Relationship(back_populates="mark_distribution")
 
@@ -95,7 +95,7 @@ class SeatInfo(SQLModel, table=True):
     unit_id: int | None = Field(
         default=None, foreign_key="unit.id", ondelete="CASCADE", unique=True, nullable=False
     )
-    general_seats: int | None = None
+    general_seats: str | None = None
     quota_breakdown: str | None = None
     unit: Unit = Relationship(back_populates="seat_info")
 
@@ -117,6 +117,6 @@ class FeeStructure(SQLModel, table=True):
     unit_id: int | None = Field(
         default=None, foreign_key="unit.id", ondelete="CASCADE", unique=True, nullable=False
     )
-    application_fee: float | None = None
+    application_fee: str | None = None
     payment_methods: str | None = None
     unit: Unit = Relationship(back_populates="fee_structure")

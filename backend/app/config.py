@@ -23,6 +23,14 @@ class Settings(BaseSettings):
     DATABASE_URL: str | None = None
     POSTGRES_URL: str | None = None
     VERCEL: str | None = None
+    JWT_SECRET: str = "prospekt-local-development-secret-change-in-production"
+    PASSWORD_PEPPER: str = "prospekt-local-development-pepper-change-in-production"
+    ACCESS_TOKEN_MINUTES: int = 15
+    REFRESH_TOKEN_DAYS: int = 7
+    INITIAL_ADMIN_EMAIL: str | None = None
+    INITIAL_ADMIN_PASSWORD: str | None = None
+    INITIAL_ADMIN_NAME: str = "Initial Admin"
+    FRONTEND_URL: str | None = None
 
     @property
     def database_url(self) -> str:
