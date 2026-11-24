@@ -1,3 +1,5 @@
+"""Shared HTTP application error type."""
+
 from fastapi import HTTPException
 
 

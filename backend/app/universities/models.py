@@ -1,3 +1,5 @@
+"""SQLModel tables for universities, units and their nested admissions data."""
+
 from datetime import date, datetime, timezone
 
 from sqlmodel import Field, Relationship, SQLModel

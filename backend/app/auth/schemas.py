@@ -1,3 +1,5 @@
+"""Pydantic request and response schemas for authentication and accounts."""
+
 from datetime import datetime
 from uuid import UUID
 

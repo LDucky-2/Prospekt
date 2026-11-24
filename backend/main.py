@@ -1,3 +1,5 @@
+"""Application entry point for the Prospectus FastAPI server."""
+
 from pathlib import Path
 
 from fastapi import FastAPI

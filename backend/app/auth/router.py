@@ -1,3 +1,5 @@
+"""HTTP endpoints for login, refresh, logout, profile and sessions."""
+
 from typing import Annotated
 from uuid import UUID
 

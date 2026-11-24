@@ -1,3 +1,5 @@
+"""Writes audit events together with request IP and browser information."""
+
 from fastapi import Request
 from sqlmodel import Session
 

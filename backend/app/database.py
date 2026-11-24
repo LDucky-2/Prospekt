@@ -1,3 +1,5 @@
+"""SQLModel database engine and request session dependency."""
+
 from collections.abc import Iterator
 from typing import Annotated
 

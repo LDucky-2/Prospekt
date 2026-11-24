@@ -1,3 +1,5 @@
+"""Database operations for users and refresh-token sessions."""
+
 from datetime import datetime
 from uuid import UUID
 

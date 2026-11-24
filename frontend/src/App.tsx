@@ -1,3 +1,4 @@
+// Main React UI: prospectus accordions, authentication and admin Users/Logs pages.
 import { useEffect, useState, type FormEvent, type ReactNode } from "react"
 import {
   createUniversity,

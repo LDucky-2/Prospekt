@@ -1,0 +1,1 @@
+"""University and prospectus feature package."""

@@ -1,3 +1,5 @@
+"""Reusable FastAPI permission checks for role-based authorization."""
+
 from collections.abc import Callable
 from typing import Annotated
 

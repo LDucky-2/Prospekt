@@ -1,3 +1,5 @@
+"""Password hashing, JWT creation and refresh-token cryptographic helpers."""
+
 import hashlib
 import secrets
 from datetime import datetime, timedelta, timezone

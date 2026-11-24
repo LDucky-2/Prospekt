@@ -1,3 +1,5 @@
+"""Admin-only HTTP routes for account management and audit logs."""
+
 from typing import Annotated
 from uuid import UUID
 

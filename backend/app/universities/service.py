@@ -1,3 +1,5 @@
+"""Prospectus business rules and conversion between API and database models."""
+
 from datetime import datetime, timezone
 
 from app.universities.models import (

@@ -1,3 +1,5 @@
+"""FastAPI dependencies for authentication and current-user lookup."""
+
 from typing import Annotated
 
 import jwt

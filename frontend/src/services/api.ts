@@ -324,3 +324,4 @@ export function listActivityLogs(params: {
   query.set("limit", String(params.limit ?? 20))
   return request<ActivityLogPage>(`/api/v1/admin/logs?${query.toString()}`)
 }
+// Frontend API client: authentication, university CRUD, account management and logs.

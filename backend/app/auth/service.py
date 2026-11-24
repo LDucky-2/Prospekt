@@ -1,3 +1,5 @@
+"""Authentication business rules for login, refresh and account changes."""
+
 from datetime import timedelta
 from uuid import UUID, uuid4
 

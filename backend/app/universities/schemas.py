@@ -1,3 +1,5 @@
+"""Pydantic and SQLModel schemas for university create, read and update requests."""
+
 from datetime import date, datetime, timezone
 from typing import Annotated
 

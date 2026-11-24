@@ -1,3 +1,5 @@
+"""FastAPI dependencies for university services and valid university IDs."""
+
 from typing import Annotated
 
 from fastapi import Depends, HTTPException

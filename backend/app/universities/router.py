@@ -1,3 +1,5 @@
+"""HTTP CRUD endpoints for public universities and protected prospectus changes."""
+
 from fastapi import APIRouter, Depends, Request, Response
 
 from app.universities.dependencies import ServiceDep, UniversityDep

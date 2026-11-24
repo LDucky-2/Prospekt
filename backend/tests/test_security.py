@@ -1,3 +1,5 @@
+"""Automated tests for JWT rejection and editor/admin RBAC behavior."""
+
 from datetime import timedelta
 from uuid import uuid4
 
