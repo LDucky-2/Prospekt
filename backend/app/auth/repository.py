@@ -24,6 +24,35 @@ class AuthRepository:
         self.session.commit()
         self.session.refresh(record)
 
+    def delete_user(self, user: AppUser) -> None:
+        self.session.delete(user)
+        self.session.commit()
+
+    def list_users(self, search: str | None = None, role: str | None = None,
+                   is_active: bool | None = None, offset: int = 0, limit: int = 20) -> tuple[list[AppUser], int]:
+        """List admin/editor accounts with optional search, role and status filters."""
+        statement = select(AppUser)
+        count_statement = select(AppUser)
+
+        if search:
+            pattern = f"%{search.lower()}%"
+            statement = statement.where(
+                (AppUser.name.ilike(pattern)) | (AppUser.email.ilike(pattern))
+            )
+            count_statement = count_statement.where(
+                (AppUser.name.ilike(pattern)) | (AppUser.email.ilike(pattern))
+            )
+        if role:
+            statement = statement.where(AppUser.role == role)
+            count_statement = count_statement.where(AppUser.role == role)
+        if is_active is not None:
+            statement = statement.where(AppUser.is_active == is_active)
+            count_statement = count_statement.where(AppUser.is_active == is_active)
+
+        total = len(list(self.session.exec(count_statement).all()))
+        statement = statement.order_by(AppUser.created_at.desc()).offset(offset).limit(limit)
+        return list(self.session.exec(statement).all()), total
+
     def revoke_refresh_token(self, record: RefreshToken, now: datetime) -> None:
         record.revoked_at = now
         self.save(record)

@@ -1,10 +1,14 @@
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, Request, Response
 
 from app.universities.dependencies import ServiceDep, UniversityDep
 from app.universities.models import University
 from app.universities.schemas import UniversityCreate, UniversityRead, UniversityUpdate
 from app.rbac.dependencies import require_permission
 from app.rbac.permissions import Permission
+from app.auth.dependencies import CurrentUser
+from app.activity.models import ActivityAction
+from app.activity.recorder import record_activity
+from app.database import SessionDep
 
 router = APIRouter(prefix="/api/v1/universities", tags=["universities"])
 
@@ -15,8 +19,23 @@ router = APIRouter(prefix="/api/v1/universities", tags=["universities"])
     status_code=201,
     dependencies=[Depends(require_permission(Permission.UNIVERSITY_CREATE))],
 )
-def create_university(data: UniversityCreate, service: ServiceDep) -> University:
-    return service.create_university(data)
+def create_university(
+    data: UniversityCreate,
+    service: ServiceDep,
+    user: CurrentUser,
+    request: Request,
+    session: SessionDep,
+) -> University:
+    university = service.create_university(data)
+    record_activity(
+        session,
+        ActivityAction.UNIVERSITY_CREATED,
+        request=request,
+        account=user,
+        target_id=str(university.id),
+        detail=f"Created university {university.name}",
+    )
+    return university
 
 
 @router.get("", response_model=list[UniversityRead])
@@ -38,8 +57,20 @@ def update_university(
     university: UniversityDep,
     data: UniversityUpdate,
     service: ServiceDep,
+    user: CurrentUser,
+    request: Request,
+    session: SessionDep,
 ) -> University:
-    return service.update_university(university, data)
+    updated = service.update_university(university, data)
+    record_activity(
+        session,
+        ActivityAction.UNIVERSITY_UPDATED,
+        request=request,
+        account=user,
+        target_id=str(updated.id),
+        detail=f"Updated university {updated.name}",
+    )
+    return updated
 
 
 @router.delete(
@@ -47,6 +78,22 @@ def update_university(
     status_code=204,
     dependencies=[Depends(require_permission(Permission.PROSPECTUS_DELETE))],
 )
-def delete_university(university: UniversityDep, service: ServiceDep) -> Response:
+def delete_university(
+    university: UniversityDep,
+    service: ServiceDep,
+    user: CurrentUser,
+    request: Request,
+    session: SessionDep,
+) -> Response:
+    university_name = university.name
+    university_id = university.id
     service.delete_university(university)
+    record_activity(
+        session,
+        ActivityAction.UNIVERSITY_DELETED,
+        request=request,
+        account=user,
+        target_id=str(university_id),
+        detail=f"Deleted university {university_name}",
+    )
     return Response(status_code=204)
