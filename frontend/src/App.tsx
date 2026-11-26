@@ -280,7 +280,7 @@ export default function App() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
-  const [page, setPage] = useState<"prospectuses" | "users" | "logs">("prospectuses")
+  const [page, setPage] = useState<"prospectuses" | "users" | "logs" | "editor">("prospectuses")
   const [adminUsers, setAdminUsers] = useState<AdminUser[]>([])
   const [adminSearch, setAdminSearch] = useState("")
   const [adminRole, setAdminRole] = useState("")
@@ -309,6 +309,8 @@ export default function App() {
       setAuthUser(user)
       setLoginPassword("")
     } catch (err) {
+      setLoginEmail("")
+      setLoginPassword("")
       setLoginError(err instanceof Error ? err.message : "Could not log in.")
     }
   }
@@ -318,6 +320,9 @@ export default function App() {
       await logout()
     } finally {
       setAuthUser(null)
+      setLoginEmail("")
+      setLoginPassword("")
+      setLoginError("")
       setPage("prospectuses")
     }
   }
@@ -391,30 +396,20 @@ export default function App() {
     }
   }
 
-  async function selectUniversity(id: number) {
-    setError("")
-    setEditing(false)
-    try {
-      const university = await getUniversity(id)
-      setSelectedUniversity(university)
-      setForm(toFormValues(university))
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not load this prospectus.")
-    }
-  }
-
   function startNew() {
     setSelectedUniversity(null)
     setForm(emptyForm)
     setEditing(false)
     setError("")
+    setPage("editor")
   }
 
-  function startEditing() {
-    if (!selectedUniversity) return
-    setForm(toFormValues(selectedUniversity))
+  function startEditing(university: University) {
+    setSelectedUniversity(university)
+    setForm(toFormValues(university))
     setEditing(true)
     setError("")
+    setPage("editor")
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -430,6 +425,7 @@ export default function App() {
       setSelectedUniversity(university)
       setForm(toFormValues(university))
       setEditing(false)
+      setPage("prospectuses")
       await loadUniversities(university.id)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not save this prospectus.")
@@ -587,10 +583,7 @@ export default function App() {
                     <div className="button-row">
                       <button
                         type="button"
-                        onClick={() => {
-                          void selectUniversity(university.id)
-                          setEditing(true)
-                        }}
+                        onClick={() => startEditing(university)}
                       >
                         Edit prospectus
                       </button>
@@ -1030,7 +1023,13 @@ export default function App() {
                     <button type="button" className="secondary-button" onClick={() => {
                       setEditing(false)
                       if (selectedUniversity) setForm(toFormValues(selectedUniversity))
+                      setPage("prospectuses")
                     }}>
+                      Cancel
+                    </button>
+                  )}
+                  {!editing && (
+                    <button type="button" className="secondary-button" onClick={() => setPage("prospectuses")}>
                       Cancel
                     </button>
                   )}

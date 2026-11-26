@@ -1,4 +1,4 @@
-"""Database model and action names for audit and security activity logs."""
+# Database model and action names for audit and security activity logs.
 
 from datetime import datetime, timezone
 from enum import Enum
@@ -10,8 +10,9 @@ from sqlmodel import Field, SQLModel
 def utc_now() -> datetime:
     return datetime.now(timezone.utc)
 
-
+# types of logs that will be recorded
 class ActivityAction(str, Enum):
+    """Types of Action that will be recorded"""
     LOGIN_SUCCESS = "login_success"
     LOGIN_FAILED = "login_failed"
     LOGOUT = "logout"
@@ -29,6 +30,7 @@ class ActivityAction(str, Enum):
 
 
 class ActivityLog(SQLModel, table=True):
+    """Defines the Activity Log Class"""
     __tablename__ = "activity_log"
 
     id: UUID = Field(default_factory=uuid4, primary_key=True)

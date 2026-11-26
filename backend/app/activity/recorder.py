@@ -1,4 +1,4 @@
-"""Writes audit events together with request IP and browser information."""
+# Writes audit events together with request IP and browser information.
 
 from fastapi import Request
 from sqlmodel import Session
@@ -8,7 +8,7 @@ from app.auth.models import AppUser
 
 
 def request_info(request: Request | None) -> tuple[str | None, str | None]:
-    # Browser and network details are copied safely before creating an audit record.
+    '''Browser and network details are copied before creating an audit record.'''
     if request is None:
         return None, None
     ip_address = request.client.host if request.client else None
@@ -25,7 +25,7 @@ def record_activity(
     target_id: str | None = None,
     detail: str | None = None,
 ) -> ActivityLog:
-    """Write one audit event and include client information when available."""
+    ''' Writes one audit event and include client information when available.'''
     ip_address, user_agent = request_info(request)
     entry = ActivityLog(
         action=action,

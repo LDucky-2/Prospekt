@@ -1,4 +1,4 @@
-"""Database queries for searchable and paginated activity logs."""
+# Database queries for searchable and paginated activity logs.
 
 from sqlmodel import Session, select
 
