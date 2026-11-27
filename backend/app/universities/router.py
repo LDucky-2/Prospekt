@@ -126,7 +126,7 @@ def create_prospectus(
     prospectus = service.create_prospectus(university, data)
     record_activity(
         session,
-        ActivityAction.PROSPECTUS_CREATED,
+        ActivityAction.UNIVERSITY_UPDATED,
         request=request,
         account=user,
         target_id=str(university.id),
@@ -156,7 +156,7 @@ def update_prospectus(
     updated = service.update_prospectus(prospectus, data)
     record_activity(
         session,
-        ActivityAction.PROSPECTUS_UPDATED,
+        ActivityAction.UNIVERSITY_UPDATED,
         request=request,
         account=user,
         target_id=str(university.id),
@@ -186,7 +186,7 @@ def delete_prospectus(
     service.delete_prospectus(prospectus)
     record_activity(
         session,
-        ActivityAction.PROSPECTUS_DELETED,
+        ActivityAction.UNIVERSITY_UPDATED,
         request=request,
         account=user,
         target_id=str(university.id),

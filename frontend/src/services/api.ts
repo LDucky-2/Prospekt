@@ -61,7 +61,10 @@ export type Prospectus = {
   updated_at: string
 }
 
-export type ProspectusInput = Omit<Prospectus, "id" | "university_id" | "created_at" | "updated_at" | "units"> & {
+export type ProspectusInput = Omit<
+  Prospectus,
+  "id" | "university_id" | "created_at" | "updated_at" | "units"
+> & {
   units: UnitInput[]
 }
 

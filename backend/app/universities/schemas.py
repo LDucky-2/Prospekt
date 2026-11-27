@@ -98,6 +98,24 @@ class UnitRead(UnitInput):
     model_config = ConfigDict(from_attributes=True)
 
 
+class ProspectusInput(SQLModel):
+    session: ProspectusSession
+    overview: str = Field(max_length=2000)
+    application_start: date | None = None
+    application_end: date | None = None
+    admit_card_download: date | None = None
+    exam_date: date | None = None
+    units: list[UnitInput] = Field(default_factory=list)
+
+
+class ProspectusCreate(ProspectusInput):
+    pass
+
+
+class ProspectusUpdate(ProspectusInput):
+    pass
+
+
 class ProspectusRead(ProspectusInput):
     id: int
     university_id: int

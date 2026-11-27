@@ -85,11 +85,21 @@ class UniversityRepository:
     @staticmethod
     def _prospectus_load_options():
         return (
-            selectinload(University.prospectuses).selectinload(Prospectus.units).selectinload(Unit.eligibility_rule),
-            selectinload(University.prospectuses).selectinload(Prospectus.units).selectinload(Unit.mark_distribution),
-            selectinload(University.prospectuses).selectinload(Prospectus.units).selectinload(Unit.seat_info),
-            selectinload(University.prospectuses).selectinload(Prospectus.units).selectinload(Unit.important_date),
-            selectinload(University.prospectuses).selectinload(Prospectus.units).selectinload(Unit.fee_structure),
+            selectinload(University.prospectuses)
+            .selectinload(Prospectus.units)
+            .selectinload(Unit.eligibility_rule),
+            selectinload(University.prospectuses)
+            .selectinload(Prospectus.units)
+            .selectinload(Unit.mark_distribution),
+            selectinload(University.prospectuses)
+            .selectinload(Prospectus.units)
+            .selectinload(Unit.seat_info),
+            selectinload(University.prospectuses)
+            .selectinload(Prospectus.units)
+            .selectinload(Unit.important_date),
+            selectinload(University.prospectuses)
+            .selectinload(Prospectus.units)
+            .selectinload(Unit.fee_structure),
         )
 
     @staticmethod

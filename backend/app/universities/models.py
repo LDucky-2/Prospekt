@@ -15,7 +15,10 @@ class University(SQLModel, table=True):
     website_url: str | None = Field(default=None, max_length=500)
     created_at: datetime = Field(default_factory=utc_now)
     updated_at: datetime = Field(default_factory=utc_now)
-    prospectuses: list["Prospectus"] = Relationship(back_populates="university", cascade_delete=True)
+    prospectuses: list["Prospectus"] = Relationship(
+        back_populates="university",
+        cascade_delete=True,
+    )
 
 
 class Prospectus(SQLModel, table=True):

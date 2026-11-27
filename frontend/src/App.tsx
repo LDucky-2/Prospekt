@@ -151,8 +151,8 @@ function toUniversityForm(university: University): FormValues {
 function toProspectusForm(prospectus: Prospectus): FormValues {
   return {
     name: "",
-    website_url: "",
     session: prospectus.session,
+    website_url: "",
     overview: prospectus.overview,
     application_start: prospectus.application_start ?? "",
     application_end: prospectus.application_end ?? "",
@@ -427,7 +427,6 @@ export default function App() {
     setForm(emptyForm)
     setEditing("university")
     setError("")
-    setPage("editor")
   }
 
   function startNewProspectus(university: University) {
@@ -436,7 +435,6 @@ export default function App() {
     setForm(emptyForm)
     setEditing("prospectus")
     setError("")
-    setPage("editor")
   }
 
   function startEditingUniversity(university: University) {
@@ -468,6 +466,7 @@ export default function App() {
           : await createUniversity(toUniversityInput(form))
         setSelectedUniversity(university)
         setSelectedProspectus(null)
+        setEditing(null)
         await loadUniversities(university.id)
       } else if (editing === "prospectus" && selectedUniversity) {
         if (selectedProspectus) {
@@ -479,13 +478,12 @@ export default function App() {
         } else {
           await createProspectus(selectedUniversity.id, toProspectusInput(form))
         }
+        setEditing(null)
+        setSelectedProspectus(null)
         await loadUniversities(selectedUniversity.id)
       } else {
         throw new Error("Select a university before saving a prospectus.")
       }
-      setEditing(null)
-      setSelectedProspectus(null)
-      setPage("prospectuses")
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not save this prospectus.")
     } finally {
@@ -652,16 +650,10 @@ export default function App() {
                 <div className="university-actions">
                   {authUser && (
                     <div className="button-row">
-                      <button
-                        type="button"
-                        onClick={() => startNewProspectus(university)}
-                      >
+                      <button type="button" onClick={() => startNewProspectus(university)}>
                         Add prospectus
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => startEditingUniversity(university)}
-                      >
+                      <button type="button" onClick={() => startEditingUniversity(university)}>
                         Edit university
                       </button>
                       <button
@@ -714,10 +706,10 @@ export default function App() {
                       ]} />
 
                       <div className="unit-accordions">
-                        <h3>Units ({prospectus.units.length})</h3>
-                        {prospectus.units.length === 0 ? (
-                          <p className="empty-message">No units have been added to this prospectus.</p>
-                        ) : prospectus.units.map((unit) => (
+                      <h3>Units ({prospectus.units.length})</h3>
+                      {prospectus.units.length === 0 ? (
+                        <p className="empty-message">No units have been added to this prospectus.</p>
+                      ) : prospectus.units.map((unit) => (
                         <details className="unit-accordion" key={unit.id}>
                           <summary>
                             <span>{unit.unit_name}</span>
@@ -762,7 +754,7 @@ export default function App() {
                             ]} />
                           </div>
                         </details>
-                        ))}
+                      ))}
                       </div>
                     </div>
                   </details>
@@ -961,7 +953,7 @@ export default function App() {
           {authUser &&
             ((editing === "university" &&
               (selectedUniversity !== null || authUser.role === "admin")) ||
-              (editing === "prospectus" && selectedUniversity)) && (
+              (editing === "prospectus" && selectedUniversity !== null)) && (
             <section className="panel form-panel">
               <p className="eyebrow">{isEditingExisting ? "Update record" : "Create record"}</p>
               <h2>
@@ -970,29 +962,28 @@ export default function App() {
                   : isEditingExisting ? "Edit prospectus" : "New prospectus"}
               </h2>
               <form className="record-form" onSubmit={(event) => void handleSubmit(event)}>
-                {editing === "university" ? (
-                  <fieldset className="form-section">
-                    <legend>University information</legend>
-                  <Field
-                    id="name"
-                    label="University name"
-                    value={form.name}
-                    onChange={(value) => updateField("name", value)}
-                    maxLength={150}
-                    required
-                  />
-                  <Field
-                    id="website_url"
-                    label="Official website URL"
-                    value={form.website_url}
-                    onChange={(value) => updateField("website_url", value)}
-                    type="url"
-                  />
-                  </fieldset>
-                ) : (
-                  <>
-                    <fieldset className="form-section">
-                      <legend>Prospectus information</legend>
+                <fieldset className="form-section">
+                  <legend>{editing === "university" ? "University information" : "Prospectus information"}</legend>
+                  {editing === "university" ? (
+                    <>
+                      <Field
+                        id="name"
+                        label="University name"
+                        value={form.name}
+                        onChange={(value) => updateField("name", value)}
+                        maxLength={150}
+                        required
+                      />
+                      <Field
+                        id="website_url"
+                        label="Official website URL"
+                        value={form.website_url}
+                        onChange={(value) => updateField("website_url", value)}
+                        type="url"
+                      />
+                    </>
+                  ) : (
+                    <>
                       <Field
                         id="session"
                         label="Admission session"
@@ -1011,17 +1002,22 @@ export default function App() {
                         multiline
                         required
                       />
-                    </fieldset>
+                    </>
+                  )}
+                </fieldset>
 
-                    <fieldset className="form-section">
-                      <legend>Prospectus-wide schedule (optional)</legend>
-                      <p className="section-help">Each unit can override these dates with its own schedule.</p>
-                      <Field id="prospectus_application_start" label="Application opens" type="date" value={form.application_start} onChange={(value) => updateField("application_start", value)} />
-                      <Field id="prospectus_application_end" label="Application closes" type="date" value={form.application_end} onChange={(value) => updateField("application_end", value)} />
-                      <Field id="prospectus_admit_card_download" label="Admit card download" type="date" value={form.admit_card_download} onChange={(value) => updateField("admit_card_download", value)} />
-                      <Field id="prospectus_exam_date" label="Admission exam" type="date" value={form.exam_date} onChange={(value) => updateField("exam_date", value)} />
-                    </fieldset>
+                {editing === "prospectus" && (
+                <fieldset className="form-section">
+                  <legend>Prospectus-wide schedule (optional)</legend>
+                  <p className="section-help">Each unit can have its own dates below.</p>
+                  <Field id="university_application_start" label="Application opens" type="date" value={form.application_start} onChange={(value) => updateField("application_start", value)} />
+                  <Field id="university_application_end" label="Application closes" type="date" value={form.application_end} onChange={(value) => updateField("application_end", value)} />
+                  <Field id="university_admit_card_download" label="Admit card download" type="date" value={form.admit_card_download} onChange={(value) => updateField("admit_card_download", value)} />
+                  <Field id="university_exam_date" label="Admission exam" type="date" value={form.exam_date} onChange={(value) => updateField("exam_date", value)} />
+                </fieldset>
+                )}
 
+                {editing === "prospectus" && (
                 <fieldset className="form-section">
                   <legend>Prospectus units</legend>
                   <p className="section-help">Each unit has its own eligibility rules, marks, seats, dates, and fees.</p>
@@ -1111,7 +1107,6 @@ export default function App() {
                   })}
                   <button type="button" className="secondary-button" onClick={addUnit}>Add unit</button>
                 </fieldset>
-                  </>
                 )}
 
                 <div className="button-row">
@@ -1126,7 +1121,6 @@ export default function App() {
                     <button type="button" className="secondary-button" onClick={() => {
                       setEditing(null)
                       setSelectedProspectus(null)
-                      setPage("prospectuses")
                     }}>
                       Cancel
                     </button>
