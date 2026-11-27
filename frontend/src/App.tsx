@@ -57,8 +57,8 @@ type UnitForm = {
 
 type FormValues = {
   name: string
-  session: string
   website_url: string
+  session: string
   overview: string
   application_start: string
   application_end: string
@@ -95,8 +95,8 @@ const emptyUnit: UnitForm = {
 
 const emptyForm: FormValues = {
   name: "",
-  session: "",
   website_url: "",
+  session: "",
   overview: "",
   application_start: "",
   application_end: "",
@@ -305,7 +305,7 @@ export default function App() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
-  const [page, setPage] = useState<"prospectuses" | "users" | "logs">("prospectuses")
+  const [page, setPage] = useState<"prospectuses" | "users" | "logs" | "editor">("prospectuses")
   const [adminUsers, setAdminUsers] = useState<AdminUser[]>([])
   const [adminSearch, setAdminSearch] = useState("")
   const [adminRole, setAdminRole] = useState("")
@@ -334,6 +334,8 @@ export default function App() {
       setAuthUser(user)
       setLoginPassword("")
     } catch (err) {
+      setLoginEmail("")
+      setLoginPassword("")
       setLoginError(err instanceof Error ? err.message : "Could not log in.")
     }
   }
@@ -343,6 +345,9 @@ export default function App() {
       await logout()
     } finally {
       setAuthUser(null)
+      setLoginEmail("")
+      setLoginPassword("")
+      setLoginError("")
       setPage("prospectuses")
     }
   }
@@ -438,6 +443,7 @@ export default function App() {
     setForm(toUniversityForm(university))
     setEditing("university")
     setError("")
+    setPage("editor")
   }
 
   function startEditingProspectus(university: University, prospectus: Prospectus) {
@@ -446,6 +452,7 @@ export default function App() {
     setForm(toProspectusForm(prospectus))
     setEditing("prospectus")
     setError("")
+    setPage("editor")
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -1115,6 +1122,11 @@ export default function App() {
                       setEditing(null)
                       setSelectedProspectus(null)
                     }}>
+                      Cancel
+                    </button>
+                  )}
+                  {editing === null && (
+                    <button type="button" className="secondary-button" onClick={() => setPage("prospectuses")}>
                       Cancel
                     </button>
                   )}

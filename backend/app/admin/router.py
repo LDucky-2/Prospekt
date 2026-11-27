@@ -1,4 +1,5 @@
-"""Admin-only HTTP routes for account management and audit logs."""
+# Admin-only HTTP routes for account management and audit logs.
+# contains all the endpoints for the admin panel(user management and activity log viewing).
 
 from typing import Annotated
 from uuid import UUID
@@ -26,7 +27,6 @@ from app.rbac.permissions import Permission
 router = APIRouter(prefix="/api/v1/admin", tags=["admin"])
 
 # Admin account actions reject changes to the current administrator's own account.
-
 def ensure_not_self(current_user: AppUser, target_id: UUID) -> None:
     if current_user.id == target_id:
         raise HTTPException(status_code=403, detail="You cannot change your own account from this action")
