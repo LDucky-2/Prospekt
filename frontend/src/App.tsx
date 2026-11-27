@@ -291,7 +291,7 @@ function DetailSection({ title, entries }: { title: string; entries: [string, Re
 }
 
 export default function App() {
-  // Top-level state separates public prospectus browsing, admin account management and audit logs.
+  // Top-level state separates prospectus browsing, record editing and admin pages.
   const [universities, setUniversities] = useState<University[]>([])
   const [authUser, setAuthUser] = useState<AuthUser | null>(null)
   const [authLoading, setAuthLoading] = useState(true)
@@ -305,7 +305,7 @@ export default function App() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
-  const [page, setPage] = useState<"prospectuses" | "users" | "logs">("prospectuses")
+  const [page, setPage] = useState<"prospectuses" | "users" | "logs" | "editor">("prospectuses")
   const [adminUsers, setAdminUsers] = useState<AdminUser[]>([])
   const [adminSearch, setAdminSearch] = useState("")
   const [adminRole, setAdminRole] = useState("")
@@ -343,6 +343,8 @@ export default function App() {
       await logout()
     } finally {
       setAuthUser(null)
+      setEditing(null)
+      setSelectedProspectus(null)
       setPage("prospectuses")
     }
   }
@@ -422,6 +424,7 @@ export default function App() {
     setForm(emptyForm)
     setEditing("university")
     setError("")
+    setPage("editor")
   }
 
   function startNewProspectus(university: University) {
@@ -430,6 +433,7 @@ export default function App() {
     setForm(emptyForm)
     setEditing("prospectus")
     setError("")
+    setPage("editor")
   }
 
   function startEditingUniversity(university: University) {
@@ -438,6 +442,7 @@ export default function App() {
     setForm(toUniversityForm(university))
     setEditing("university")
     setError("")
+    setPage("editor")
   }
 
   function startEditingProspectus(university: University, prospectus: Prospectus) {
@@ -446,6 +451,14 @@ export default function App() {
     setForm(toProspectusForm(prospectus))
     setEditing("prospectus")
     setError("")
+    setPage("editor")
+  }
+
+  function cancelEditor() {
+    setEditing(null)
+    setSelectedProspectus(null)
+    setForm(emptyForm)
+    setPage("prospectuses")
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -460,6 +473,7 @@ export default function App() {
         setSelectedUniversity(university)
         setSelectedProspectus(null)
         setEditing(null)
+        setPage("prospectuses")
         await loadUniversities(university.id)
       } else if (editing === "prospectus" && selectedUniversity) {
         if (selectedProspectus) {
@@ -473,6 +487,7 @@ export default function App() {
         }
         setEditing(null)
         setSelectedProspectus(null)
+        setPage("prospectuses")
         await loadUniversities(selectedUniversity.id)
       } else {
         throw new Error("Select a university before saving a prospectus.")
@@ -555,7 +570,7 @@ export default function App() {
                   <button
                     type="button"
                     className={page === "prospectuses" ? "secondary-button" : undefined}
-                    onClick={() => setPage("prospectuses")}
+                    onClick={cancelEditor}
                   >
                     Prospectuses
                   </button>
@@ -563,6 +578,7 @@ export default function App() {
                     type="button"
                     className={page === "users" ? "secondary-button" : undefined}
                     onClick={() => {
+                      cancelEditor()
                       setPage("users")
                       void loadAdminUsers()
                     }}
@@ -573,6 +589,7 @@ export default function App() {
                     type="button"
                     className={page === "logs" ? "secondary-button" : undefined}
                     onClick={() => {
+                      cancelEditor()
                       setPage("logs")
                       void loadActivityLogs()
                     }}
@@ -1111,10 +1128,7 @@ export default function App() {
                         : editing === "university" ? "Create university" : "Create prospectus"}
                   </button>
                   {editing !== null && (
-                    <button type="button" className="secondary-button" onClick={() => {
-                      setEditing(null)
-                      setSelectedProspectus(null)
-                    }}>
+                    <button type="button" className="secondary-button" onClick={cancelEditor}>
                       Cancel
                     </button>
                   )}
