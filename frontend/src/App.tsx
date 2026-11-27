@@ -345,14 +345,8 @@ export default function App() {
       await logout()
     } finally {
       setAuthUser(null)
-<<<<<<< HEAD
       setEditing(null)
       setSelectedProspectus(null)
-=======
-      setLoginEmail("")
-      setLoginPassword("")
-      setLoginError("")
->>>>>>> 94b259af6e1b405d9ede7cd28e84456b214a7db8
       setPage("prospectuses")
     }
   }
@@ -460,7 +454,6 @@ export default function App() {
     setEditing("prospectus")
     setError("")
     setPage("editor")
-<<<<<<< HEAD
   }
 
   function cancelEditor() {
@@ -468,8 +461,6 @@ export default function App() {
     setSelectedProspectus(null)
     setForm(emptyForm)
     setPage("prospectuses")
-=======
->>>>>>> 94b259af6e1b405d9ede7cd28e84456b214a7db8
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
