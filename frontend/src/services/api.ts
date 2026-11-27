@@ -47,11 +47,10 @@ export type Unit = {
 
 export type UnitInput = Omit<Unit, "id">
 
-export type University = {
+export type Prospectus = {
   id: number
-  name: string
+  university_id: number
   session: string
-  website_url: string | null
   overview: string
   application_start: string | null
   application_end: string | null
@@ -62,9 +61,23 @@ export type University = {
   updated_at: string
 }
 
-export type UniversityInput = Omit<University, "id" | "created_at" | "updated_at" | "units"> & {
+export type ProspectusInput = Omit<
+  Prospectus,
+  "id" | "university_id" | "created_at" | "updated_at" | "units"
+> & {
   units: UnitInput[]
 }
+
+export type University = {
+  id: number
+  name: string
+  website_url: string | null
+  prospectuses: Prospectus[]
+  created_at: string
+  updated_at: string
+}
+
+export type UniversityInput = Pick<University, "name" | "website_url">
 
 export type AuthUser = {
   id: string
@@ -224,6 +237,28 @@ export function updateUniversity(id: number, data: UniversityInput): Promise<Uni
 
 export function deleteUniversity(id: number): Promise<void> {
   return remove(`/api/v1/universities/${id}`)
+}
+
+export function createProspectus(universityId: number, data: ProspectusInput): Promise<Prospectus> {
+  return request(`/api/v1/universities/${universityId}/prospectuses`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  })
+}
+
+export function updateProspectus(
+  universityId: number,
+  prospectusId: number,
+  data: ProspectusInput,
+): Promise<Prospectus> {
+  return request(`/api/v1/universities/${universityId}/prospectuses/${prospectusId}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  })
+}
+
+export function deleteProspectus(universityId: number, prospectusId: number): Promise<void> {
+  return remove(`/api/v1/universities/${universityId}/prospectuses/${prospectusId}`)
 }
 
 export async function login(data: LoginInput): Promise<AuthUser> {

@@ -1,4 +1,4 @@
-"""SQLModel tables for universities, units and their nested admissions data."""
+"""SQLModel tables for universities, prospectuses, units and admissions data."""
 
 from datetime import date, datetime, timezone
 
@@ -12,8 +12,23 @@ def utc_now() -> datetime:
 class University(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     name: str = Field(max_length=150, index=True)
-    session: str = Field(max_length=20)
     website_url: str | None = Field(default=None, max_length=500)
+    created_at: datetime = Field(default_factory=utc_now)
+    updated_at: datetime = Field(default_factory=utc_now)
+    prospectuses: list["Prospectus"] = Relationship(
+        back_populates="university",
+        cascade_delete=True,
+    )
+
+
+class Prospectus(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    university_id: int = Field(
+        foreign_key="university.id",
+        ondelete="CASCADE",
+        index=True,
+    )
+    session: str = Field(max_length=20)
     overview: str = Field(max_length=2000)
     application_start: date | None = None
     application_end: date | None = None
@@ -21,15 +36,16 @@ class University(SQLModel, table=True):
     exam_date: date | None = None
     created_at: datetime = Field(default_factory=utc_now)
     updated_at: datetime = Field(default_factory=utc_now)
-    units: list["Unit"] = Relationship(back_populates="university", cascade_delete=True)
+    university: University = Relationship(back_populates="prospectuses")
+    units: list["Unit"] = Relationship(back_populates="prospectus", cascade_delete=True)
 
 
 class Unit(SQLModel, table=True):
-    # A university can contain several units, each with separate admissions information.
+    # A prospectus can contain several units, each with separate admissions information.
     id: int | None = Field(default=None, primary_key=True)
-    university_id: int | None = Field(
+    prospectus_id: int | None = Field(
         default=None,
-        foreign_key="university.id",
+        foreign_key="prospectus.id",
         ondelete="CASCADE",
         index=True,
         nullable=False,
@@ -37,7 +53,7 @@ class Unit(SQLModel, table=True):
     unit_name: str = Field(max_length=120)
     background: str = Field(max_length=40)
     total_seats: str | None = None
-    university: University = Relationship(back_populates="units")
+    prospectus: Prospectus = Relationship(back_populates="units")
     eligibility_rule: "EligibilityRule" = Relationship(
         back_populates="unit",
         cascade_delete=True,
