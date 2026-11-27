@@ -81,3 +81,8 @@ npm run build
 6. Create a test university only as admin.
 7. Open `/api/docs` and confirm it loads.
 8. Reload a deep link and verify the React page remains accessible.
+
+
+
+
+Public - private key pair

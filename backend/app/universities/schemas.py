@@ -8,19 +8,12 @@ from pydantic import ConfigDict
 from sqlmodel import Field, SQLModel
 
 UniversityName = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=150)]
-UniversitySession = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=20)]
+ProspectusSession = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=20)]
 
 
 class UniversityInput(SQLModel):
     name: UniversityName
-    session: UniversitySession
     website_url: str | None = Field(default=None, max_length=500)
-    overview: str = Field(max_length=2000)
-    application_start: date | None = None
-    application_end: date | None = None
-    admit_card_download: date | None = None
-    exam_date: date | None = None
-    units: list["UnitInput"] = Field(default_factory=list)
 
 
 class EligibilityRuleInput(SQLModel):
@@ -74,6 +67,16 @@ class UnitInput(SQLModel):
     model_config = ConfigDict(coerce_numbers_to_str=True)
 
 
+class ProspectusInput(SQLModel):
+    session: ProspectusSession
+    overview: str = Field(max_length=2000)
+    application_start: date | None = None
+    application_end: date | None = None
+    admit_card_download: date | None = None
+    exam_date: date | None = None
+    units: list[UnitInput] = Field(default_factory=list)
+
+
 class UniversityCreate(UniversityInput):
     pass
 
@@ -82,13 +85,35 @@ class UniversityUpdate(UniversityInput):
     pass
 
 
+class ProspectusCreate(ProspectusInput):
+    pass
+
+
+class ProspectusUpdate(ProspectusInput):
+    pass
+
+
 class UnitRead(UnitInput):
     id: int
     model_config = ConfigDict(from_attributes=True)
 
 
-class UniversityRead(UniversityInput):
+class ProspectusRead(ProspectusInput):
+    id: int
+    university_id: int
+    created_at: datetime
+    updated_at: datetime
     units: list[UnitRead] = Field(default_factory=list)
+    model_config = ConfigDict(from_attributes=True)
+
+    @field_validator("created_at", "updated_at")
+    @classmethod
+    def as_utc(cls, value: datetime) -> datetime:
+        return value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value
+
+
+class UniversityRead(UniversityInput):
+    prospectuses: list[ProspectusRead] = Field(default_factory=list)
     id: int
     created_at: datetime
     updated_at: datetime
@@ -100,5 +125,5 @@ class UniversityRead(UniversityInput):
         return value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value
 
 
-UniversityInput.model_rebuild()
+ProspectusInput.model_rebuild()
 UniversityRead.model_rebuild()
