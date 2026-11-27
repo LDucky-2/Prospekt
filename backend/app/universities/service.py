@@ -7,12 +7,19 @@ from app.universities.models import (
     FeeStructure,
     ImportantDate,
     MarkDistribution,
+    Prospectus,
     SeatInfo,
     Unit,
     University,
 )
 from app.universities.repository import UniversityRepository
-from app.universities.schemas import UniversityCreate, UniversityUpdate, UnitInput
+from app.universities.schemas import (
+    ProspectusCreate,
+    ProspectusUpdate,
+    UniversityCreate,
+    UniversityUpdate,
+    UnitInput,
+)
 
 
 class UniversityService:
@@ -26,13 +33,44 @@ class UniversityService:
         return self.repository.get(university_id)
 
     def create_university(self, data: UniversityCreate) -> University:
-        university = University.model_validate(data, update={"units": self._create_units(data.units)})
+        university = University.model_validate(data)
         return self.repository.create(university)
 
     def update_university(self, university: University, data: UniversityUpdate) -> University:
+        changes = data.model_dump()
+        changes["updated_at"] = datetime.now(timezone.utc)
+        return self.repository.update(university, changes)
+
+    def create_prospectus(
+        self, university: University, data: ProspectusCreate
+    ) -> Prospectus:
+        if university.id is None:
+            raise ValueError("A prospectus requires a saved university.")
+        prospectus = Prospectus.model_validate(
+            data,
+            update={
+                "university_id": university.id,
+                "units": self._create_units(data.units),
+            },
+        )
+        return self.repository.create_prospectus(prospectus)
+
+    def update_prospectus(
+        self, prospectus: Prospectus, data: ProspectusUpdate
+    ) -> Prospectus:
         changes = data.model_dump(exclude={"units"})
         changes["updated_at"] = datetime.now(timezone.utc)
-        return self.repository.update(university, changes, self._create_units(data.units))
+        return self.repository.update_prospectus(
+            prospectus, changes, self._create_units(data.units)
+        )
+
+    def get_prospectus(
+        self, university_id: int, prospectus_id: int
+    ) -> Prospectus | None:
+        return self.repository.get_prospectus(university_id, prospectus_id)
+
+    def delete_prospectus(self, prospectus: Prospectus) -> None:
+        self.repository.delete_prospectus(prospectus)
 
     def delete_university(self, university: University) -> None:
         self.repository.delete(university)

@@ -8,6 +8,7 @@ from sqlalchemy.pool import NullPool
 from sqlmodel import Session, SQLModel, create_engine
 
 from app.config import settings
+from app.migrations import migrate_legacy_university_schema
 
 if settings.database_url.startswith("sqlite"):
     engine = create_engine(settings.database_url, connect_args={"check_same_thread": False})
@@ -20,7 +21,8 @@ else:
 
 
 def create_db_and_tables() -> None:
-    # Keep table creation for development; hosted production data changes should use migrations.
+    # Legacy SQLite data migrates automatically; PostgreSQL upgrades use the SQL migration file.
+    migrate_legacy_university_schema(engine)
     SQLModel.metadata.create_all(engine)
 
 

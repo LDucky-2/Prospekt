@@ -26,6 +26,9 @@ class ActivityAction(str, Enum):
     UNIVERSITY_CREATED = "university_created"
     UNIVERSITY_UPDATED = "university_updated"
     UNIVERSITY_DELETED = "university_deleted"
+    PROSPECTUS_CREATED = "prospectus_created"
+    PROSPECTUS_UPDATED = "prospectus_updated"
+    PROSPECTUS_DELETED = "prospectus_deleted"
     ACCESS_DENIED = "access_denied"
 
 

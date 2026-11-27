@@ -1,10 +1,13 @@
 // Main React UI: prospectus accordions, authentication and admin Users/Logs pages.
 import { useEffect, useState, type FormEvent, type ReactNode } from "react"
 import {
+  createProspectus,
   createUniversity,
+  deleteProspectus,
   deleteUniversity,
   getUniversity,
   listUniversities,
+  updateProspectus,
   updateUniversity,
   login,
   logout,
@@ -18,6 +21,8 @@ import {
   type AdminUser,
   type ActivityLog,
   type AuthUser,
+  type Prospectus,
+  type ProspectusInput,
   type University,
   type UniversityInput,
   type Unit,
@@ -52,8 +57,8 @@ type UnitForm = {
 
 type FormValues = {
   name: string
-  session: string
   website_url: string
+  session: string
   overview: string
   application_start: string
   application_end: string
@@ -90,8 +95,8 @@ const emptyUnit: UnitForm = {
 
 const emptyForm: FormValues = {
   name: "",
-  session: "",
   website_url: "",
+  session: "",
   overview: "",
   application_start: "",
   application_end: "",
@@ -129,17 +134,31 @@ function toUnitForm(unit: Unit): UnitForm {
   }
 }
 
-function toFormValues(university: University): FormValues {
+function toUniversityForm(university: University): FormValues {
   return {
     name: university.name,
-    session: university.session,
     website_url: university.website_url ?? "",
-    overview: university.overview,
-    application_start: university.application_start ?? "",
-    application_end: university.application_end ?? "",
-    admit_card_download: university.admit_card_download ?? "",
-    exam_date: university.exam_date ?? "",
-    units: university.units.map(toUnitForm),
+    session: "",
+    overview: "",
+    application_start: "",
+    application_end: "",
+    admit_card_download: "",
+    exam_date: "",
+    units: [],
+  }
+}
+
+function toProspectusForm(prospectus: Prospectus): FormValues {
+  return {
+    name: "",
+    website_url: "",
+    session: prospectus.session,
+    overview: prospectus.overview,
+    application_start: prospectus.application_start ?? "",
+    application_end: prospectus.application_end ?? "",
+    admit_card_download: prospectus.admit_card_download ?? "",
+    exam_date: prospectus.exam_date ?? "",
+    units: prospectus.units.map(toUnitForm),
   }
 }
 
@@ -188,8 +207,13 @@ function toUnitInput(form: UnitForm): UnitInput {
 function toUniversityInput(form: FormValues): UniversityInput {
   return {
     name: form.name,
-    session: form.session,
     website_url: form.website_url.trim() || null,
+  }
+}
+
+function toProspectusInput(form: FormValues): ProspectusInput {
+  return {
+    session: form.session,
     overview: form.overview,
     application_start: form.application_start || null,
     application_end: form.application_end || null,
@@ -275,8 +299,9 @@ export default function App() {
   const [loginPassword, setLoginPassword] = useState("")
   const [loginError, setLoginError] = useState("")
   const [selectedUniversity, setSelectedUniversity] = useState<University | null>(null)
+  const [selectedProspectus, setSelectedProspectus] = useState<Prospectus | null>(null)
   const [form, setForm] = useState<FormValues>(emptyForm)
-  const [editing, setEditing] = useState(false)
+  const [editing, setEditing] = useState<"university" | "prospectus" | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
@@ -384,11 +409,11 @@ export default function App() {
       const nextId = preferredId ?? records[0]?.id
       if (nextId === undefined) {
         setSelectedUniversity(null)
+        setSelectedProspectus(null)
         return
       }
       const university = await getUniversity(nextId)
       setSelectedUniversity(university)
-      if (!editing) setForm(toFormValues(university))
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not load prospectuses.")
     } finally {
@@ -396,18 +421,38 @@ export default function App() {
     }
   }
 
-  function startNew() {
+  function startNewUniversity() {
     setSelectedUniversity(null)
+    setSelectedProspectus(null)
     setForm(emptyForm)
-    setEditing(false)
+    setEditing("university")
     setError("")
     setPage("editor")
   }
 
-  function startEditing(university: University) {
+  function startNewProspectus(university: University) {
     setSelectedUniversity(university)
-    setForm(toFormValues(university))
-    setEditing(true)
+    setSelectedProspectus(null)
+    setForm(emptyForm)
+    setEditing("prospectus")
+    setError("")
+    setPage("editor")
+  }
+
+  function startEditingUniversity(university: University) {
+    setSelectedUniversity(university)
+    setSelectedProspectus(null)
+    setForm(toUniversityForm(university))
+    setEditing("university")
+    setError("")
+    setPage("editor")
+  }
+
+  function startEditingProspectus(university: University, prospectus: Prospectus) {
+    setSelectedUniversity(university)
+    setSelectedProspectus(prospectus)
+    setForm(toProspectusForm(prospectus))
+    setEditing("prospectus")
     setError("")
     setPage("editor")
   }
@@ -417,16 +462,30 @@ export default function App() {
     setSaving(true)
     setError("")
     try {
-      const input = toUniversityInput(form)
-      const university =
-        editing && selectedUniversity
-          ? await updateUniversity(selectedUniversity.id, input)
-          : await createUniversity(input)
-      setSelectedUniversity(university)
-      setForm(toFormValues(university))
-      setEditing(false)
+      if (editing === "university") {
+        const university = selectedUniversity
+          ? await updateUniversity(selectedUniversity.id, toUniversityInput(form))
+          : await createUniversity(toUniversityInput(form))
+        setSelectedUniversity(university)
+        setSelectedProspectus(null)
+        await loadUniversities(university.id)
+      } else if (editing === "prospectus" && selectedUniversity) {
+        if (selectedProspectus) {
+          await updateProspectus(
+            selectedUniversity.id,
+            selectedProspectus.id,
+            toProspectusInput(form),
+          )
+        } else {
+          await createProspectus(selectedUniversity.id, toProspectusInput(form))
+        }
+        await loadUniversities(selectedUniversity.id)
+      } else {
+        throw new Error("Select a university before saving a prospectus.")
+      }
+      setEditing(null)
+      setSelectedProspectus(null)
       setPage("prospectuses")
-      await loadUniversities(university.id)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not save this prospectus.")
     } finally {
@@ -434,23 +493,33 @@ export default function App() {
     }
   }
 
-  async function handleDelete() {
-    if (!selectedUniversity) return
-    if (!window.confirm(`Delete the ${selectedUniversity.name} prospectus?`)) return
-
+  async function handleDeleteUniversity(university: University) {
+    if (!window.confirm(`Delete ${university.name} and all its prospectuses?`)) return
     setError("")
     try {
-      await deleteUniversity(selectedUniversity.id)
-      setSelectedUniversity(null)
-      setForm(emptyForm)
-      setEditing(false)
+      await deleteUniversity(university.id)
+      if (selectedUniversity?.id === university.id) {
+        setSelectedUniversity(null)
+        setSelectedProspectus(null)
+      }
       await loadUniversities()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not delete this university.")
+    }
+  }
+
+  async function handleDeleteProspectus(university: University, prospectus: Prospectus) {
+    if (!window.confirm(`Delete the ${prospectus.session} prospectus for ${university.name}?`)) return
+    setError("")
+    try {
+      await deleteProspectus(university.id, prospectus.id)
+      await loadUniversities(university.id)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not delete this prospectus.")
     }
   }
 
-  function updateField(field: keyof Omit<FormValues, "units">, value: string) {
+  function updateField(field: keyof FormValues, value: string) {
     setForm((current) => ({ ...current, [field]: value }))
   }
 
@@ -474,7 +543,9 @@ export default function App() {
     }))
   }
 
-  const isEditingExisting = editing && selectedUniversity !== null
+  const isEditingExisting =
+    (editing === "university" && selectedUniversity !== null) ||
+    (editing === "prospectus" && selectedProspectus !== null)
 
   return (
     <main className="page-shell">
@@ -558,14 +629,14 @@ export default function App() {
             <h2>Universities</h2>
           </div>
           {authUser?.role === "admin" && (
-            <button type="button" onClick={startNew}>New university</button>
+            <button type="button" onClick={startNewUniversity}>New university</button>
           )}
         </div>
 
         {loading ? (
           <p className="panel state-message">Loading universities...</p>
         ) : universities.length === 0 ? (
-          <p className="panel state-message">No prospectuses have been added yet.</p>
+          <p className="panel state-message">No universities have been added yet.</p>
         ) : (
           <div className="university-accordions">
             {/* University -> prospectus -> unit is intentionally nested to keep information compact. */}
@@ -574,7 +645,7 @@ export default function App() {
                 <summary>
                   <span>
                     <strong>{university.name}</strong>
-                    <small>Admission session {university.session}</small>
+                    <small>{university.prospectuses.length} prospectus{university.prospectuses.length === 1 ? "" : "es"}</small>
                   </span>
                 </summary>
 
@@ -583,56 +654,70 @@ export default function App() {
                     <div className="button-row">
                       <button
                         type="button"
-                        onClick={() => startEditing(university)}
+                        onClick={() => startNewProspectus(university)}
                       >
-                        Edit prospectus
+                        Add prospectus
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => startEditingUniversity(university)}
+                      >
+                        Edit university
                       </button>
                       <button
                         className="danger-button"
                         type="button"
-                        onClick={() => {
-                          setSelectedUniversity(university)
-                          void (async () => {
-                            if (!window.confirm(`Delete the ${university.name} prospectus?`)) return
-                            try {
-                              await deleteUniversity(university.id)
-                              await loadUniversities()
-                            } catch (err) {
-                              setError(err instanceof Error ? err.message : "Could not delete this prospectus.")
-                            }
-                          })()
-                        }}
+                        onClick={() => void handleDeleteUniversity(university)}
                       >
-                        Delete
+                        Delete university
                       </button>
                     </div>
                   )}
                 </div>
 
-                <details className="prospectus-accordion" open>
-                  <summary>Prospectus information</summary>
-                  <div className="prospectus-content">
-                    <DetailSection title="University information" entries={[
-                      ["Admission session", university.session],
-                      ["Official website", university.website_url ? (
-                        <a href={university.website_url} target="_blank" rel="noreferrer">
-                          {university.website_url}
-                        </a>
-                      ) : null],
-                      ["Overview", university.overview || "Not provided"],
-                    ]} />
-                    <DetailSection title="University-wide schedule" entries={[
-                      ["Application opens", university.application_start],
-                      ["Application closes", university.application_end],
-                      ["Admit card download", university.admit_card_download],
-                      ["Admission exam", university.exam_date],
-                    ]} />
+                {university.prospectuses.length === 0 ? (
+                  <p className="empty-message">No prospectuses have been added to this university.</p>
+                ) : university.prospectuses.map((prospectus) => (
+                  <details className="prospectus-accordion" key={prospectus.id}>
+                    <summary>Admission session {prospectus.session}</summary>
+                    <div className="prospectus-content">
+                      {authUser && (
+                        <div className="button-row">
+                          <button
+                            type="button"
+                            onClick={() => startEditingProspectus(university, prospectus)}
+                          >
+                            Edit prospectus
+                          </button>
+                          <button
+                            className="danger-button"
+                            type="button"
+                            onClick={() => void handleDeleteProspectus(university, prospectus)}
+                          >
+                            Delete prospectus
+                          </button>
+                        </div>
+                      )}
+                      <DetailSection title="Prospectus information" entries={[
+                        ["Official website", university.website_url ? (
+                          <a href={university.website_url} target="_blank" rel="noreferrer">
+                            {university.website_url}
+                          </a>
+                        ) : null],
+                        ["Overview", prospectus.overview || "Not provided"],
+                      ]} />
+                      <DetailSection title="Prospectus-wide schedule" entries={[
+                        ["Application opens", prospectus.application_start],
+                        ["Application closes", prospectus.application_end],
+                        ["Admit card download", prospectus.admit_card_download],
+                        ["Admission exam", prospectus.exam_date],
+                      ]} />
 
-                    <div className="unit-accordions">
-                      <h3>Units ({university.units.length})</h3>
-                      {university.units.length === 0 ? (
-                        <p className="empty-message">No units have been added to this university.</p>
-                      ) : university.units.map((unit) => (
+                      <div className="unit-accordions">
+                        <h3>Units ({prospectus.units.length})</h3>
+                        {prospectus.units.length === 0 ? (
+                          <p className="empty-message">No units have been added to this prospectus.</p>
+                        ) : prospectus.units.map((unit) => (
                         <details className="unit-accordion" key={unit.id}>
                           <summary>
                             <span>{unit.unit_name}</span>
@@ -677,10 +762,11 @@ export default function App() {
                             ]} />
                           </div>
                         </details>
-                      ))}
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                </details>
+                  </details>
+                ))}
               </details>
             ))}
           </div>
@@ -873,14 +959,20 @@ export default function App() {
       <section className="main-column">
 
           {authUser &&
-            ((!selectedUniversity && authUser.role === "admin") ||
-              (editing && selectedUniversity)) && (
+            ((editing === "university" &&
+              (selectedUniversity !== null || authUser.role === "admin")) ||
+              (editing === "prospectus" && selectedUniversity)) && (
             <section className="panel form-panel">
               <p className="eyebrow">{isEditingExisting ? "Update record" : "Create record"}</p>
-              <h2>{isEditingExisting ? "Edit prospectus" : "New prospectus"}</h2>
+              <h2>
+                {editing === "university"
+                  ? isEditingExisting ? "Edit university" : "New university"
+                  : isEditingExisting ? "Edit prospectus" : "New prospectus"}
+              </h2>
               <form className="record-form" onSubmit={(event) => void handleSubmit(event)}>
-                <fieldset className="form-section">
-                  <legend>University information</legend>
+                {editing === "university" ? (
+                  <fieldset className="form-section">
+                    <legend>University information</legend>
                   <Field
                     id="name"
                     label="University name"
@@ -890,43 +982,48 @@ export default function App() {
                     required
                   />
                   <Field
-                    id="session"
-                    label="Admission session"
-                    value={form.session}
-                    onChange={(value) => updateField("session", value)}
-                    maxLength={20}
-                    placeholder="e.g. 2026-2027"
-                    required
-                  />
-                  <Field
                     id="website_url"
                     label="Official website URL"
                     value={form.website_url}
                     onChange={(value) => updateField("website_url", value)}
                     type="url"
                   />
-                  <Field
-                    id="overview"
-                    label="Overview"
-                    value={form.overview}
-                    onChange={(value) => updateField("overview", value)}
-                    maxLength={2000}
-                    multiline
-                    required
-                  />
-                </fieldset>
+                  </fieldset>
+                ) : (
+                  <>
+                    <fieldset className="form-section">
+                      <legend>Prospectus information</legend>
+                      <Field
+                        id="session"
+                        label="Admission session"
+                        value={form.session}
+                        onChange={(value) => updateField("session", value)}
+                        maxLength={20}
+                        placeholder="e.g. 2026-2027"
+                        required
+                      />
+                      <Field
+                        id="overview"
+                        label="Overview"
+                        value={form.overview}
+                        onChange={(value) => updateField("overview", value)}
+                        maxLength={2000}
+                        multiline
+                        required
+                      />
+                    </fieldset>
+
+                    <fieldset className="form-section">
+                      <legend>Prospectus-wide schedule (optional)</legend>
+                      <p className="section-help">Each unit can override these dates with its own schedule.</p>
+                      <Field id="prospectus_application_start" label="Application opens" type="date" value={form.application_start} onChange={(value) => updateField("application_start", value)} />
+                      <Field id="prospectus_application_end" label="Application closes" type="date" value={form.application_end} onChange={(value) => updateField("application_end", value)} />
+                      <Field id="prospectus_admit_card_download" label="Admit card download" type="date" value={form.admit_card_download} onChange={(value) => updateField("admit_card_download", value)} />
+                      <Field id="prospectus_exam_date" label="Admission exam" type="date" value={form.exam_date} onChange={(value) => updateField("exam_date", value)} />
+                    </fieldset>
 
                 <fieldset className="form-section">
-                  <legend>University-wide schedule (optional)</legend>
-                  <p className="section-help">Use these dates only when they apply to the university as a whole. Each unit can have its own dates below.</p>
-                  <Field id="university_application_start" label="Application opens" type="date" value={form.application_start} onChange={(value) => updateField("application_start", value)} />
-                  <Field id="university_application_end" label="Application closes" type="date" value={form.application_end} onChange={(value) => updateField("application_end", value)} />
-                  <Field id="university_admit_card_download" label="Admit card download" type="date" value={form.admit_card_download} onChange={(value) => updateField("admit_card_download", value)} />
-                  <Field id="university_exam_date" label="Admission exam" type="date" value={form.exam_date} onChange={(value) => updateField("exam_date", value)} />
-                </fieldset>
-
-                <fieldset className="form-section">
-                  <legend>University units</legend>
+                  <legend>Prospectus units</legend>
                   <p className="section-help">Each unit has its own eligibility rules, marks, seats, dates, and fees.</p>
                   {form.units.length === 0 && <p>No units added yet.</p>}
                   {form.units.map((unit, index) => {
@@ -1014,21 +1111,27 @@ export default function App() {
                   })}
                   <button type="button" className="secondary-button" onClick={addUnit}>Add unit</button>
                 </fieldset>
+                  </>
+                )}
 
                 <div className="button-row">
                   <button type="submit" disabled={saving}>
-                    {saving ? "Saving..." : isEditingExisting ? "Save changes" : "Create prospectus"}
+                    {saving
+                      ? "Saving..."
+                      : isEditingExisting
+                        ? "Save changes"
+                        : editing === "university" ? "Create university" : "Create prospectus"}
                   </button>
-                  {editing && (
+                  {editing !== null && (
                     <button type="button" className="secondary-button" onClick={() => {
-                      setEditing(false)
-                      if (selectedUniversity) setForm(toFormValues(selectedUniversity))
+                      setEditing(null)
+                      setSelectedProspectus(null)
                       setPage("prospectuses")
                     }}>
                       Cancel
                     </button>
                   )}
-                  {!editing && (
+                  {editing === null && (
                     <button type="button" className="secondary-button" onClick={() => setPage("prospectuses")}>
                       Cancel
                     </button>
