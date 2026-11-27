@@ -67,11 +67,29 @@ class UnitInput(SQLModel):
     model_config = ConfigDict(coerce_numbers_to_str=True)
 
 
+class ProspectusInput(SQLModel):
+    session: ProspectusSession
+    overview: str = Field(max_length=2000)
+    application_start: date | None = None
+    application_end: date | None = None
+    admit_card_download: date | None = None
+    exam_date: date | None = None
+    units: list[UnitInput] = Field(default_factory=list)
+
+
 class UniversityCreate(UniversityInput):
     pass
 
 
 class UniversityUpdate(UniversityInput):
+    pass
+
+
+class ProspectusCreate(ProspectusInput):
+    pass
+
+
+class ProspectusUpdate(ProspectusInput):
     pass
 
 

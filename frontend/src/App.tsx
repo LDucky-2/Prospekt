@@ -57,8 +57,8 @@ type UnitForm = {
 
 type FormValues = {
   name: string
-  session: string
   website_url: string
+  session: string
   overview: string
   application_start: string
   application_end: string
@@ -95,8 +95,8 @@ const emptyUnit: UnitForm = {
 
 const emptyForm: FormValues = {
   name: "",
-  session: "",
   website_url: "",
+  session: "",
   overview: "",
   application_start: "",
   application_end: "",
@@ -334,6 +334,8 @@ export default function App() {
       setAuthUser(user)
       setLoginPassword("")
     } catch (err) {
+      setLoginEmail("")
+      setLoginPassword("")
       setLoginError(err instanceof Error ? err.message : "Could not log in.")
     }
   }
@@ -343,8 +345,14 @@ export default function App() {
       await logout()
     } finally {
       setAuthUser(null)
+<<<<<<< HEAD
       setEditing(null)
       setSelectedProspectus(null)
+=======
+      setLoginEmail("")
+      setLoginPassword("")
+      setLoginError("")
+>>>>>>> 94b259af6e1b405d9ede7cd28e84456b214a7db8
       setPage("prospectuses")
     }
   }
@@ -452,6 +460,7 @@ export default function App() {
     setEditing("prospectus")
     setError("")
     setPage("editor")
+<<<<<<< HEAD
   }
 
   function cancelEditor() {
@@ -459,6 +468,8 @@ export default function App() {
     setSelectedProspectus(null)
     setForm(emptyForm)
     setPage("prospectuses")
+=======
+>>>>>>> 94b259af6e1b405d9ede7cd28e84456b214a7db8
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -1129,6 +1140,11 @@ export default function App() {
                   </button>
                   {editing !== null && (
                     <button type="button" className="secondary-button" onClick={cancelEditor}>
+                      Cancel
+                    </button>
+                  )}
+                  {editing === null && (
+                    <button type="button" className="secondary-button" onClick={() => setPage("prospectuses")}>
                       Cancel
                     </button>
                   )}
