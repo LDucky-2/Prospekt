@@ -183,6 +183,7 @@ def delete_user(
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
     repository.revoke_all_sessions(user.id, utc_now())
+    ActivityRepository(session).detach_account_history(user.id, user.email)
     repository.delete_user(user)
     record_activity(
         session,

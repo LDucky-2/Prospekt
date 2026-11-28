@@ -47,8 +47,9 @@ Admission prospectuses combine rules for several academic units and admissions s
 * University and prospectus creation, editing, and deletion.
 * Admin and editor roles.
 * Editor account creation, role/status changes, deletion, search, and filters.
+* Editor account creation requires a temporary password of at least eight characters and gives clear feedback for shorter passwords.
 * Login, logout, refresh, profile update, password change, and session management endpoints.
-* Activity logs with search, action, and IP filters.
+* Activity logs with search, action, and IP filters; deleting an account preserves its history and recorded email.
 * Login lockout after five failed attempts.
 * Responsive React interface and OpenAPI documentation.
 
@@ -104,7 +105,7 @@ Admission prospectuses combine rules for several academic units and admissions s
 
 ## 8. Success Metrics
 
-* 8 backend tests pass.
+* 9 backend tests pass.
 * Frontend TypeScript/Vite production build succeeds.
 * Public reads do not require authentication.
 * Editor accounts can manage prospectus content.

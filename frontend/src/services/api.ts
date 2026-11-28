@@ -171,6 +171,32 @@ async function refreshAccessToken(): Promise<boolean> {
   return refreshInProgress
 }
 
+function getApiErrorMessage(detail: unknown): string | null {
+  if (typeof detail === "string") return detail
+  if (!Array.isArray(detail)) return null
+
+  const messages = detail
+    .map((item: unknown) => {
+      if (typeof item !== "object" || item === null) return null
+      const issue = item as { loc?: unknown; msg?: unknown; type?: unknown }
+      if (typeof issue.msg !== "string") return null
+      if (
+        issue.type === "string_too_short"
+        && Array.isArray(issue.loc)
+        && issue.loc.includes("password")
+      ) {
+        return "Temporary password must be at least 8 characters."
+      }
+      const field = Array.isArray(issue.loc)
+        ? issue.loc.filter((part): part is string => typeof part === "string").slice(-1)[0]
+        : undefined
+      return field ? `${field}: ${issue.msg}` : issue.msg
+    })
+    .filter((message): message is string => message !== null)
+
+  return messages.length > 0 ? messages.join("; ") : null
+}
+
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
   // Every API call adds the bearer token, refreshes once on 401, and keeps errors consistent.
   const send = () => fetch(url, {
@@ -196,8 +222,8 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
   if (!response.ok) {
     let message = `Request failed: ${response.status}`
     try {
-      const body: { detail?: string } = await response.json()
-      if (body.detail) message = body.detail
+      const body: { detail?: unknown } = await response.json()
+      message = getApiErrorMessage(body.detail) ?? message
     } catch {
       // Use the HTTP status when the server does not return JSON.
     }

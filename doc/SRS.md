@@ -68,6 +68,7 @@ This specification describes the implemented Prospekt public prospectus interfac
 | FR-AUTH-12 | The system shall allow profile-name updates and password changes. |
 | FR-AUTH-13 | The system shall lock an account for 15 minutes after five failed login attempts. |
 | FR-AUTH-14 | The system shall return 423 while a login lockout is active. |
+| FR-AUTH-15 | The system shall reject passwords shorter than eight characters and return a clear validation message. |
 
 ### Account and audit requirements
 
@@ -81,6 +82,7 @@ This specification describes the implemented Prospekt public prospectus interfac
 | FR-ADM-06 | An admin shall not be able to change or delete its own account through account-management routes. |
 | FR-ADM-07 | Deactivating an account shall revoke all of that account's refresh sessions. |
 | FR-ADM-08 | An admin shall be able to list filtered activity logs. |
+| FR-ADM-09 | Deleting an account shall preserve its audit events and recorded email while removing the deleted account reference. |
 
 ## 3. Non-Functional Requirements
 

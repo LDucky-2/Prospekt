@@ -233,8 +233,8 @@ button:hover:not(:disabled) {
 }
 
 button:disabled {
-  cursor: wait;
-  opacity: 0.7;
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .danger-button {
@@ -759,6 +759,13 @@ textarea:focus {
 .admin-user-table td select {
   min-width: 110px;
   padding: 0.5rem;
+}
+
+.account-self-action-note {
+  display: block;
+  margin-top: 0.4rem;
+  color: #6b7280;
+  font-size: 0.75rem;
 }
 
 .status-active,

@@ -102,6 +102,8 @@ All detailed unit relationships use cascade deletion and one-to-one ownership on
 * `RefreshToken`: UUID, user, session UUID, SHA-256 token hash, expiry, revocation time, timestamps, IP, and user-agent.
 * `ActivityLog`: UUID, action, account and target identifiers, detail, IP, user-agent, and timestamp.
 
+When an account is deleted, its historical activity rows retain the recorded email and other event details while their `account_id` reference is cleared. This keeps deletion compatible with the audit foreign key and preserves searchable history.
+
 ## 6. REST API
 
 | Method | Path | Authorization | Success |
@@ -126,7 +128,7 @@ All detailed unit relationships use cascade deletion and one-to-one ownership on
 | GET | `/api/v1/admin/logs` | Admin log permission | 200 |
 | GET | `/api/health` | Public | 200 |
 
-Errors use `{"detail":"message"}` JSON responses.
+Errors use `{"detail":"message"}` JSON responses; request validation can return an array of issue objects in `detail`, which the frontend formats into readable messages. Editor-creation passwords must be at least eight characters, with a matching client-side check.
 
 ## 7. Authentication Design
 
@@ -219,5 +221,5 @@ npm run build
 
 Verified result:
 
-* Backend: 8 tests passed.
+* Backend: 9 tests passed.
 * Frontend: TypeScript/Vite production build passed.

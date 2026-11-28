@@ -1,5 +1,8 @@
 # Database queries for searchable and paginated activity logs.
 
+from uuid import UUID
+
+from sqlalchemy import func, update
 from sqlmodel import Session, select
 
 from app.activity.models import ActivityAction, ActivityLog
@@ -8,6 +11,17 @@ from app.activity.models import ActivityAction, ActivityLog
 class ActivityRepository:
     def __init__(self, session: Session) -> None:
         self.session = session
+
+    def detach_account_history(self, account_id: UUID, email: str) -> None:
+        statement = (
+            update(ActivityLog)
+            .where(ActivityLog.account_id == account_id)
+            .values(
+                account_id=None,
+                account_email=func.coalesce(ActivityLog.account_email, email),
+            )
+        )
+        self.session.exec(statement)
 
     def list(
         self,

@@ -106,7 +106,7 @@ Prospekt organizes this information by university, admissions session, and acade
 | G-3 | Prevent unauthorized content changes | Missing authentication returns 401 and insufficient permissions return 403 |
 | G-4 | Secure administrative sessions | Passwords use Argon2, access tokens expire in 15 minutes, refreshes rotate, and reuse is detected |
 | G-5 | Provide audit accountability | Login, logout, account, role, status, password, university, and prospectus actions are logged |
-| G-6 | Produce reproducible builds | 8 backend tests pass and the frontend production build succeeds |
+| G-6 | Produce reproducible builds | 9 backend tests pass and the frontend production build succeeds |
 
 ## **A4. Scope and Non-Goals**
 
@@ -191,6 +191,7 @@ This specification describes the implemented public prospectus interface and pro
 | FR-AUTH-08 | The system shall support logout and session revocation |
 | FR-AUTH-09 | The system shall lock an account for 15 minutes after five failed login attempts |
 | FR-AUTH-10 | The system shall allow profile-name updates and password changes |
+| FR-AUTH-15 | The system shall reject passwords shorter than eight characters with a clear validation message |
 
 **Table 6: RBAC requirements**
 
@@ -214,6 +215,7 @@ This specification describes the implemented public prospectus interface and pro
 | FR-ADM-05 | The system shall revoke sessions for a deactivated or deleted account |
 | FR-ADM-06 | The system shall filter activity logs by text, action, and IP address |
 | FR-ADM-07 | The system shall record administrative and authentication events |
+| FR-ADM-09 | The system shall preserve deleted accounts' audit events and recorded email while clearing the deleted account reference |
 
 **Table 8: Domain requirements**
 
@@ -775,6 +777,7 @@ npm run build
 | Text-valued admission fields | FR-DOM-04 | Passed |
 | Nested prospectus migration/data | FR-DOM-02/03 | Passed |
 | Migration SQL test | Persistence | Passed |
+| Account deletion preserves audit history | FR-ADM-09 | Passed |
 | Frontend production build | Frontend build | Passed |
 
 # **Part D. Evidence: Screenshots of the Running Application**
@@ -826,11 +829,12 @@ The captured image shows the application viewport; the browser toolbar is not in
 
 ```text
 ============================= test session starts =============================
-collected 8 items
-tests\test_migrations.py .                                               [ 12%]
-tests\test_security.py ......                                            [ 87%]
+collected 9 items
+tests\test_admin_accounts.py .                                           [ 11%]
+tests\test_migrations.py .                                               [ 22%]
+tests\test_security.py ......                                            [ 88%]
 tests\test_university_prospectuses.py .                                  [100%]
-============================== 8 passed in 9.82s ==============================
+============================== 9 passed in 10.38s ==============================
 ```
 
 # **Part E. Project Management and Conclusion**

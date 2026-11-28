@@ -390,6 +390,10 @@ export default function App() {
   async function handleCreateEditor(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError("")
+    if (editorForm.password.length < 8) {
+      setError("Temporary password must be at least 8 characters.")
+      return
+    }
     try {
       await createEditor(editorForm)
       setEditorForm({ name: "", email: "", password: "" })
@@ -790,7 +794,7 @@ export default function App() {
             <h3>Create editor account</h3>
             <Field id="editor-name" label="Name" value={editorForm.name} onChange={(value) => setEditorForm((current) => ({ ...current, name: value }))} required />
             <Field id="editor-email" label="Email" type="email" value={editorForm.email} onChange={(value) => setEditorForm((current) => ({ ...current, email: value }))} required />
-            <Field id="editor-password" label="Temporary password" type="password" value={editorForm.password} onChange={(value) => setEditorForm((current) => ({ ...current, password: value }))} required />
+            <Field id="editor-password" label="Temporary password (at least 8 characters)" type="password" value={editorForm.password} onChange={(value) => setEditorForm((current) => ({ ...current, password: value }))} required />
             <button type="submit">Create editor</button>
           </form>
 
@@ -871,6 +875,7 @@ export default function App() {
                           type="button"
                           className="danger-button"
                           disabled={user.id === authUser?.id}
+                          title={user.id === authUser?.id ? "You cannot delete the account you are currently signed into." : undefined}
                           onClick={() => {
                             if (!window.confirm(`Delete ${user.name}'s account?`)) return
                             void deleteAdminUser(user.id)
@@ -881,6 +886,9 @@ export default function App() {
                           Delete
                         </button>
                       </div>
+                      {user.id === authUser?.id && (
+                        <small className="account-self-action-note">Sign in with another admin account to delete this one.</small>
+                      )}
                     </td>
                   </tr>
                 ))}
