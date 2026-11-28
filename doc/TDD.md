@@ -1,177 +1,223 @@
-# Technical Design Document (TDD) — Prospekt
+# Technical Design Document (TDD) - Prospekt
 
 | Field | Value |
-| --- | --- |
+|---|---|
 | Product | Prospekt |
-| Version | MVP + Beta |
-| Releases | MVP — Mid-term, Beta — Final |
-| Status | Draft |
-| Related docs | [Product Requirements Document (PRD)](https://www.google.com/search?q=PRD.md), [Software Requirements Specification (SRS)](https://www.google.com/search?q=SRS.md) |
+| Status | Current implementation |
+| API framework | FastAPI |
+| Frontend | React 19, TypeScript 7, Vite 8 |
 
-## 1. Overview
+## 1. Technology Stack
 
-* **MVP:** A FastAPI REST API backed by Supabase PostgreSQL (SQLite locally) providing public read endpoints for universities, units, eligibility criteria, mark distributions, seat data, important dates, and fee structures. Deployed on Vercel alongside the Vite + React frontend.
-* **Beta:** Adds admin authentication (JWT + HttpOnly refresh cookies, Argon2 hashing), admin RBAC, an administrative CRUD portal for managing prospectus data, and Alembic database migrations.
+| Component | Technology | Role |
+|---|---|---|
+| Frontend | React, TypeScript, Vite | Public browsing and administration SPA |
+| API | FastAPI | HTTP routing, validation, OpenAPI |
+| ORM | SQLModel and SQLAlchemy | Models and persistence |
+| Local database | SQLite | Development database |
+| Production database | PostgreSQL-compatible SQL database | Persistent deployment storage |
+| Password security | pwdlib Argon2 | Password hashing and verification |
+| Access tokens | PyJWT, HS256 | Short-lived authentication |
+| Refresh tokens | Opaque random token, SHA-256 hash | Revocable browser sessions |
+| Testing | pytest, HTTPX | Backend tests |
+| Hosting | Vercel | Frontend/API services and rewrites |
 
-## 2. Tech Stack
+## 2. Architecture
 
-| Layer | Choice | Why | Release |
-| --- | --- | --- | --- |
-| API Framework | FastAPI | Automatic OpenAPI docs, robust data validation, and high performance | MVP |
-| ORM / Models | SQLModel | Combines Pydantic validation with SQLAlchemy relational modeling | MVP |
-| Production DB | PostgreSQL on Supabase | Managed Postgres, robust web table editor, and built-in transaction pooling for serverless | MVP |
-| Local DB | SQLite | Zero-configuration local file database for development | MVP |
-| Database Driver | `psycopg[binary]` | Standard connection driver for PostgreSQL | MVP |
-| Frontend | Vite + React + TypeScript | Responsive, modern UI framework | MVP |
-| Hosting | Vercel | Unified static frontend and serverless backend hosting (`vercel.json`) | MVP |
-| Migrations | Alembic | Version-controlled database schema changes | Beta |
-| JWT Handling | PyJWT | Secure encoding and decoding of admin access tokens | Beta |
-| Password Hashing | `pwdlib[argon2]` | Industry-standard Argon2 hashing for admin passwords | Beta |
-
-## 3. Architecture
-
+```text
+Browser
+  |
+  | HTTPS
+  v
+Vite React SPA
+  |
+  | /api/* JSON, Bearer access token, HttpOnly refresh cookie
+  v
+FastAPI application
+  |
+  | SQLModel
+  v
+SQLite locally / PostgreSQL in production
 ```
-[Browser / Frontend] --(GET /api/v1/*)--> [FastAPI Backend on Vercel]
-[Admin Portal] --(POST/PATCH /api/v1/admin/*)--> [FastAPI Backend on Vercel]
-[FastAPI Backend on Vercel] --(SQLModel Queries)--> [(Supabase PostgreSQL)]
 
+`vercel.json` routes `/api/*` to the FastAPI service and every other path to the Vite frontend. The frontend calls same-origin API paths and does not contain database credentials.
+
+## 3. Backend Structure
+
+```text
+backend/
+  main.py
+  app/
+    config.py
+    database.py
+    errors.py
+    migrations.py
+    activity/
+    admin/
+    auth/
+    rbac/
+    universities/
+  migrations/
+  tests/
 ```
 
-Routing configuration in `vercel.json` directs all requests matching `/api/*` to the FastAPI backend service and all other requests to the frontend static build. Consequently, backend routes begin with `/api/v1`. API documentation is served at `/api/docs`:
+* `main.py` configures FastAPI, CORS, security headers, routers, health, and initial-admin seeding.
+* `app/universities` contains public read and protected content CRUD.
+* `app/auth` contains login, refresh, logout, profile, password, and session logic.
+* `app/admin` contains user management and activity-log endpoints.
+* `app/rbac` contains permission constants and the reusable role check dependency.
+* `app/activity` contains audit models, repository methods, and recording.
+* `app/database.py` creates the SQLModel engine and database tables.
+
+## 4. Frontend Structure
+
+```text
+frontend/src/
+  App.tsx
+  index.css
+  main.tsx
+  services/api.ts
+```
+
+All application state and UI are implemented in `App.tsx`. `services/api.ts` stores the access token in `sessionStorage`, stores expiry metadata, sends credentials and bearer headers, refreshes once after a 401, and exposes university/auth/admin operations.
+
+## 5. Data Model
+
+### Core entities
+
+* `University`: identity, name, website, timestamps, and prospectuses.
+* `Prospectus`: university foreign key, admissions session, overview, application/admit/exam dates, and units.
+* `Unit`: prospectus foreign key, name, academic background, and total seats.
+* `EligibilityRule`: one-to-one unit eligibility information.
+* `MarkDistribution`: one-to-one unit mark details.
+* `SeatInfo`: one-to-one unit seat/quota details.
+* `ImportantDate`: one-to-one unit date details.
+* `FeeStructure`: one-to-one unit fee/payment details.
+
+All detailed unit relationships use cascade deletion and one-to-one ownership on the unit.
+
+### Security entities
+
+* `AppUser`: UUID, email, name, Argon2 password hash, editor/admin role, active status, login counters, lockout time, and timestamps.
+* `RefreshToken`: UUID, user, session UUID, SHA-256 token hash, expiry, revocation time, timestamps, IP, and user-agent.
+* `ActivityLog`: UUID, action, account and target identifiers, detail, IP, user-agent, and timestamp.
+
+## 6. REST API
+
+| Method | Path | Authorization | Success |
+|---|---|---|---|
+| GET | `/api/v1/universities` | Public | 200 |
+| GET | `/api/v1/universities/{id}` | Public | 200 |
+| POST | `/api/v1/universities` | Admin university:create | 201 |
+| PUT | `/api/v1/universities/{id}` | Prospectus update permission | 200 |
+| DELETE | `/api/v1/universities/{id}` | Prospectus delete permission | 204 |
+| POST | `/api/v1/universities/{id}/prospectuses` | Prospectus create permission | 201 |
+| PUT | `/api/v1/universities/{id}/prospectuses/{id}` | Prospectus update permission | 200 |
+| DELETE | `/api/v1/universities/{id}/prospectuses/{id}` | Prospectus delete permission | 204 |
+| POST | `/api/v1/auth/login` | Public | 200 |
+| POST | `/api/v1/auth/refresh` | Refresh cookie | 200 |
+| POST | `/api/v1/auth/logout` | Authenticated | 204 |
+| GET | `/api/v1/auth/me` | Authenticated | 200 |
+| PATCH | `/api/v1/auth/me` | Authenticated | 200 |
+| POST | `/api/v1/auth/password` | Authenticated | 204 |
+| GET | `/api/v1/auth/sessions` | Authenticated | 200 |
+| DELETE | `/api/v1/auth/sessions/{id}` | Authenticated | 204 |
+| GET/PATCH/POST/DELETE | `/api/v1/admin/users*` | Admin user permissions | 200/201/204 |
+| GET | `/api/v1/admin/logs` | Admin log permission | 200 |
+| GET | `/api/health` | Public | 200 |
+
+Errors use `{"detail":"message"}` JSON responses.
+
+## 7. Authentication Design
+
+### Login and access token
+
+1. The client posts email and password.
+2. The server verifies Argon2 plus the configured password pepper.
+3. A 15-minute HS256 JWT is issued with `sub`, `role`, `iat`, and `exp`.
+4. The JWT secret comes from `JWT_SECRET`.
+
+### Refresh
+
+1. The login creates an opaque 48-byte random token.
+2. Only a SHA-256 token hash is persisted.
+3. The raw token is stored in an HttpOnly, Strict refresh cookie.
+4. Refresh revokes the used record and creates a new record/token.
+5. If a revoked token is reused, the server revokes all refresh sessions for that user.
+
+### Frontend behavior
+
+* Access token and expiry are kept in `sessionStorage`.
+* Refresh cookie is managed by the browser and cannot be read by JavaScript.
+* On 401, one refresh is attempted and the original request is retried once.
+* If refresh fails, local access-token state is cleared.
+
+## 8. RBAC Design
+
+The permission module defines prospectus, university, user, and log permissions. The dependency resolves `CurrentUser`, looks up the role's permissions, and raises 403 for a missing permission.
 
 ```python
-app = FastAPI(title="Prospekt API", docs_url="/api/docs", openapi_url="/api/openapi.json", redoc_url=None)
-
+def require_permission(permission: Permission) -> Callable[..., AppUser]:
+    def check(user: CurrentUser) -> AppUser:
+        if permission not in ROLE_PERMISSIONS.get(user.role, set()):
+            raise HTTPException(status_code=403, detail="Permission denied")
+        return user
+    return check
 ```
 
-### 3.1 Request Flow (Public Read — MVP)
+Editors receive prospectus create/update/delete permissions. Admins receive those permissions plus university creation and account/log permissions.
 
-```
-[Client / Browser] --(GET /api/v1/universities)--> [FastAPI Router]
-[FastAPI Router] --(fetch_universities)--> [Service / DB Session]
-[Service / DB Session] --(SELECT * FROM university)--> [Supabase PostgreSQL]
-[Supabase PostgreSQL] --(University records)--> [Service / DB Session]
-[Service / DB Session] --(List of universities)--> [FastAPI Router]
-[FastAPI Router] --(200 OK JSON)--> [Client / Browser]
+## 9. Security Threat Defenses
 
-```
+| Threat | Defence |
+|---|---|
+| Password database leak | Argon2 hash plus server pepper |
+| Stolen access token | 15-minute lifetime; signature and expiry verification |
+| Refresh-token database leak | Only SHA-256 hashes are persisted |
+| Refresh-token reuse | Revoke all user sessions on reuse |
+| Brute-force login | Five failures cause a 15-minute account lock |
+| Privilege escalation | Server-side role/permission dependencies |
+| Account access after ban/deactivation | Refresh and protected authentication checks active status |
+| XSS | Refresh token is HttpOnly |
+| CSRF | SameSite=Strict refresh cookie and same-origin API usage |
+| CORS misuse | Explicit allowed origins |
+| SQL injection | SQLModel/SQLAlchemy parameterized queries |
+| Repository secrets | Production secrets are environment variables |
 
-### 3.2 Admin Authentication & Mutation Flow (Beta)
+## 10. Deployment
 
-```
-[Admin Client] --(POST /api/v1/admin/auth/login)--> [Auth Router]
-[Auth Router] --(Verify credentials)--> [Supabase PostgreSQL]
-[Supabase PostgreSQL] --(Admin verified)--> [Auth Router]
-[Auth Router] --(200 OK + Set-Cookie refresh_token)--> [Admin Client]
-[Admin Client] --(POST /api/v1/admin/universities + Bearer Token)--> [Auth Router]
-[Auth Router] --(Verify JWT & admin role)--> [Auth Router]
-[Auth Router] --(Insert record)--> [Supabase PostgreSQL]
-[Supabase PostgreSQL] --(Success)--> [Auth Router]
-[Auth Router] --(201 Created)--> [Admin Client]
+`vercel.json` declares FastAPI and Vite services and rewrites. The intended production database is PostgreSQL. SQLite is the fallback local database.
 
-```
+| Variable | Purpose |
+|---|---|
+| `DATABASE_URL` or `POSTGRES_URL` | PostgreSQL or SQLite database URL |
+| `JWT_SECRET` | Access-token signing secret |
+| `PASSWORD_PEPPER` | Extra password-hashing secret |
+| `ACCESS_TOKEN_MINUTES` | Access-token lifetime |
+| `REFRESH_TOKEN_DAYS` | Refresh-session lifetime |
+| `INITIAL_ADMIN_EMAIL` | Initial admin email |
+| `INITIAL_ADMIN_PASSWORD` | Initial admin password |
+| `INITIAL_ADMIN_NAME` | Initial admin display name |
+| `FRONTEND_URL` | Allowed deployed frontend origin |
+| `VERCEL` | Set by Vercel to enable production-secret validation |
 
-## 4. Project Structure
+## 11. Testing
 
-```
-backend/
-  main.py              # FastAPI app setup, router inclusion, health check, static file mounting
-  app/
-    config.py          # Environment settings (DATABASE_URL, JWT settings)
-    database.py        # SQLModel engine, session dependency (`SessionDep`)
-    security.py        # (Beta) Argon2 hashing, JWT verification, refresh token hashing
-    universities/      # University domain folder
-      router.py        # Public university & unit endpoints
-      models.py        # University, Unit, Eligibility, MarkDistribution, SeatInfo, Date, Fee models
-      schemas.py       # Pydantic request/response schemas
-      service.py       # Business logic and queries
-    admin/             # (Beta) Admin management domain
-      router.py        # Admin CRUD endpoints for prospectus data
-      auth_router.py   # Admin login, refresh, logout
-      dependencies.py  # `get_current_admin`, role verification
-  alembic/             # (Beta) Migration scripts
-  alembic.ini
-  requirements.txt
-frontend/
-  src/
-    App.tsx            # Routes, layout, and theme configuration
-    pages/             # Public Home, UniversityDetail, UnitDetail, AdminLogin, AdminDashboard
-    components/        # UnitFilter, MarkDistributionTable, DateCountdown, UnitComparator
-    services/          # API client fetch wrappers
-docs/
-  PRD.md
-  SRS.md
-  TDD.md
+Run the backend suite:
 
+```powershell
+cd backend
+.\.venv\Scripts\python.exe -m pytest
 ```
 
-## 5. Data Model & ERD
+Build the frontend:
 
-### 5.1 Core Tables (MVP)
+```powershell
+cd frontend
+npm run build
+```
 
-* **`university`**: `id` (PK), `name` (varchar), `session` (varchar), `website_url` (varchar), `overview` (text), optional university-wide application/admit-card/exam dates, `created_at`, `updated_at`.
-* **`unit`**: `id` (PK), `university_id` (FK), `unit_name` (varchar, e.g. "A Unit"), `background` (varchar: Science/Arts/Commerce/All), `total_seats` (int). A university has many units; each unit owns its prospectus details below.
-* **`eligibility_rule`**: `id` (PK), unique `unit_id` (FK), `min_ssc_gpa` (float), `min_hsc_gpa` (float), `combined_gpa` (float), `second_time_allowed` (bool), `second_time_penalty_marks` (float), `subject_requirements` (text).
-* **`mark_distribution`**: `id` (PK), unique `unit_id` (FK), `total_marks` (int), `mcq_marks` (int), `written_marks` (int), `negative_marking_penalty` (float), `pass_mark_total` (float), and free-text `subject_breakout`.
-* **`seat_info`**: `id` (PK), unique `unit_id` (FK), `general_seats` (int), and free-text `quota_breakdown`.
-* **`important_date`**: `id` (PK), unique `unit_id` (FK), `application_start` (date), `application_end` (date), `admit_card_start` (date), `exam_date` (date).
-* **`fee_structure`**: `id` (PK), unique `unit_id` (FK), `application_fee` (float), `payment_methods` (text).
+Verified result:
 
-The university CRUD endpoints accept and return each university with its nested units and their eligibility rules, marks, seats, dates, and fees. The frontend calls the backend API only; database credentials and database connections remain exclusively in the backend.
-
-### 5.2 Admin Tables (Beta)
-
-* **`admin_user`**: `id` (PK), `email` (varchar, unique), `name` (varchar), `password_hash` (varchar), `role` (varchar: `admin`, `super_admin`), `failed_login_count` (int), `locked_until` (datetime), `created_at`, `updated_at`.
-* **`refresh_token`**: `id` (PK), `admin_id` (FK), `token_hash` (char 64), `expires_at` (datetime), `revoked_at` (datetime).
-
-## 6. REST API Design
-
-Base path: `/api/v1`. All payloads and responses use JSON.
-
-### 6.1 University Prospectus CRUD (MVP)
-
-| Method | Path | Description | Access |
-| --- | --- | --- | --- |
-| `POST` | `/api/v1/universities` | Create a university prospectus record | Public |
-| `GET` | `/api/v1/universities` | List university prospectus records | Public |
-| `GET` | `/api/v1/universities/{id}` | Read one university prospectus record | Public |
-| `PUT` | `/api/v1/universities/{id}` | Replace/update a university prospectus record | Public |
-| `DELETE` | `/api/v1/universities/{id}` | Delete a university prospectus record | Public |
-| `GET` | `/api/health` | System health check | Public |
-
-### 6.2 Admin Endpoints (Beta)
-
-| Method | Path | Description | Access |
-| --- | --- | --- | --- |
-| `POST` | `/api/v1/admin/auth/login` | Admin login | Public (Guest Admin) |
-| `POST` | `/api/v1/admin/auth/refresh` | Refresh access token via cookie | Refresh Cookie |
-| `POST` | `/api/v1/admin/auth/logout` | Revoke refresh token | Admin |
-| `GET` | `/api/v1/admin/profile` | Get logged-in admin profile | Admin |
-| `PATCH` | `/api/v1/admin/profile` | Update admin name or password | Admin |
-| `POST` | `/api/v1/admin/universities` | Create a new university record | Admin |
-| `PATCH` | `/api/v1/admin/universities/{id}` | Update university details | Admin |
-| `DELETE` | `/api/v1/admin/universities/{id}` | Delete university and associated units | Super Admin |
-| `POST` | `/api/v1/admin/units` | Create a unit and its criteria | Admin |
-| `PATCH` | `/api/v1/admin/units/{id}` | Update unit criteria, marks, or seats | Admin |
-| `DELETE` | `/api/v1/admin/units/{id}` | Delete a unit | Admin |
-
-## 7. Configuration & Deployment
-
-* **Environment Variables:**
-* `DATABASE_URL`: Connection string for Supabase PostgreSQL (transaction pooler port `6543`) or local SQLite.
-* Locally, put `DATABASE_URL` in `backend/.env`; the FastAPI backend reads it and connects to Supabase. The frontend only calls the backend API and must not contain database credentials. If unset, the backend uses `backend/prospekt.db` for SQLite development.
-* On Vercel, set `DATABASE_URL` in the project environment variables (or use the Supabase-provided `POSTGRES_URL`).
-* `JWT_SECRET`: Secure cryptographic secret for signing admin JWT tokens (minimum 32 bytes).
-* `ACCESS_TOKEN_MINUTES`: Access token expiration (default: `15`).
-* `REFRESH_TOKEN_DAYS`: Refresh token lifetime (default: `7`).
-
-
-* **Supabase Integration:** Configured via Vercel environment variables using Supavisor transaction pooling with `NullPool` in SQLAlchemy to manage serverless connection lifecycles efficiently.
-* **Deployment Pipeline:** Automatic deployments on pushes to `main` via the Vercel GitHub integration. Database migrations via Alembic are executed prior to pushing schema updates.
-
-## 8. Security
-
-* **Password Hashing:** Argon2 hashing via `pwdlib` for all administrator accounts.
-* **Token Security:** Short-lived JWT access tokens paired with HttpOnly, Secure, SameSite=Strict refresh cookies restricted to the `/api/v1/admin/auth` path.
-* **Brute-Force Protection:** Account lockout mechanism triggering `429 Too Many Requests` after 5 failed login attempts within 15 minutes.
-* **Security Headers:** Enforced globally via `vercel.json` (`X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Strict-Transport-Security`).
+* Backend: 8 tests passed.
+* Frontend: TypeScript/Vite production build passed.
